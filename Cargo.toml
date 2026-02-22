@@ -1,0 +1,11 @@
+[package]
+name = "risky-sim"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rounding_mode = { git = "https://github.com/AntonioDrumond/rust-rounding-mode", rev = "b4bfeafe1dcfcaf527b7faa48b31070f6a414822" }
+
+[[bin]]
+name = "risky-sim"
+path = "src/main.rs"
