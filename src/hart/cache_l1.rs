@@ -1,6 +1,7 @@
 #[derive(Debug)]
 pub struct CacheL1 {
-    arr: Vec<u8>
+    arr: Vec<u8>,
+    size: usize
 }
 
 #[allow(dead_code)]
@@ -12,7 +13,8 @@ impl CacheL1 {
     /// * `size` - The desired total size of the memory space *in bytes*.
     pub fn new(size: usize) -> Self {
         CacheL1 {
-            arr: vec![0; size]
+            arr: vec![0; size],
+            size
         }
     }
 
@@ -27,6 +29,15 @@ impl CacheL1 {
     /// Panics if `addr` is out of bounds.
     pub fn get8(&self, addr: usize) -> u8 {
         self.arr[addr]
+    }
+
+    /// Returns the size of the memory
+    ///
+    /// # Arguments
+    ///
+    /// * 'none' - No arguments
+    pub fn size(&self) -> usize {
+        self.size
     }
     
     /// Returns a halfword (2 bytes) in little-endian format,

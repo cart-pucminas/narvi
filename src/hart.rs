@@ -8,6 +8,8 @@ use extensions::{
 
 use cache_l1::CacheL1;
 
+use serde::ser::{Serialize, Serializer, SerializeStruct};
+
 #[allow(dead_code, unused_variables, non_camel_case_types)]
 #[derive(Debug)]
 enum Reg {
@@ -67,6 +69,22 @@ pub struct Hart <'a>{
     f_regs: FRegs,
     flen: u8,
     fcsr: u32,
+}
+
+impl Serialize for Hart<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer, 
+    {
+        let mut state = serializer.serialize_struct("Hart", 6)?;
+        state.serialize_field("M_extension", &self.extensions.m)?;
+        state.serialize_field("A_extension", &self.extensions.a)?;
+        state.serialize_field("C_extension", &self.extensions.c)?;
+        state.serialize_field("F_extension", &self.extensions.f)?;
+        state.serialize_field("D_extension", &self.extensions.d)?;
+        state.serialize_field("L1_size", &self.l1.size())?;
+        state.end()
+    }
 }
 
 impl Hart<'_> {

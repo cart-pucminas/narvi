@@ -9,43 +9,8 @@ use crate::util::{
 impl Hart<'_> {
     pub(super) fn execute_d(&mut self, inst: u32) -> Result<(), HartError> {
         let opcode = get_bits(6, 0, inst);
-        let funct7 = get_bits(31, 25, inst);
-        let funct2 = get_bits(26, 25, inst);
-        let rs2 = get_bits(24, 20, inst);
-        let funct3 = get_bits(14, 12, inst);
-        match (funct7, funct2, rs2, funct3, opcode) {
-            (_, _, _, 0b011, 0b0000111) => self.fld(inst),
-            (_, _, _, 0b011, 0b0100111) => self.fsd(inst),
-            (_, 0b01, _, _, 0b1000011) => self.fmadd_d(inst),
-            (_, 0b01, _, _, 0b1000111) => self.fmsub_d(inst),
-            (_, 0b01, _, _, 0b1001011) => self.fnmsub_d(inst),
-            (_, 0b01, _, _, 0b1001111) => self.fnmadd_d(inst),
-            (0b0000001, _, _, _, 0b1010011) => self.fadd_d(inst),
-            (0b0000101, _, _, _, 0b1010011) => self.fsub_d(inst),
-            (0b0001001, _, _, _, 0b1010011) => self.fmul_d(inst),
-            (0b0001101, _, _, _, 0b1010011) => self.fdiv_d(inst),
-            (0b0101101, _, 0b00000, _, 0b1010011) => self.fsqrt_d(inst),
-            (0b0010001, _, _, 0b000, 0b1010011) => self.fsgnj_d(inst),
-            (0b0010001, _, _, 0b001, 0b1010011) => self.fsgnjn_d(inst),
-            (0b0010001, _, _, 0b010, 0b1010011) => self.fsgnjx_d(inst),
-            (0b0010101, _, _, 0b000, 0b1010011) => self.fmin_d(inst),
-            (0b0010101, _, _, 0b001, 0b1010011) => self.fmax_d(inst),
-            (0b0100000, _, 0b00000, _, 0b1010011) => self.fcvt_s_d(inst),
-            (0b0100001, _, 0b00001, _, 0b1010011) => self.fcvt_d_s(inst),
-            (0b1010001, _, 0b00000, 0b010, 0b1010011) => self.feq_d(inst),
-            (0b1010001, _, _, 0b001, 0b1010011) => self.flt_d(inst),
-            (0b1010001, _, _, 0b000, 0b1010011) => self.fle_d(inst),
-            (0b1110001, _, _, 0b001, 0b1010011) => self.fclass_d(inst),
-            (0b1100001, _, 0b00000, _, 0b1010011) => self.fcvt_w_d(inst),
-            (0b1100001, _, 0b00001, _, 0b1010011) => self.fcvt_wu_d(inst),
-            (0b1101001, _, 0b00000, _, 0b1010011) => self.fcvt_d_w(inst),
-            (0b1101001, _, 0b00001, _, 0b1010011) => self.fcvt_d_wu(inst),
-            (0b1100001, _, 0b00010, _, 0b1010011) => self.fcvt_l_d(inst),
-            (0b1100001, _, 0b00011, _, 0b1010011) => self.fcvt_lu_d(inst),
-            (0b1110001, _, 0b00000, 0b000, 0b1010011) => self.fmv_x_d(inst),
-            (0b1101001, _, 0b00010, _, 0b1010011) => self.fcvt_d_l(inst),
-            (0b1101001, _, 0b00011, _, 0b1010011) => self.fcvt_d_lu(inst),
-            (0b1111001, _, 0b00000, 0b000, 0b1010011) => self.fmv_d_x(inst),
+        match opcode {
+            0x0 => todo!("instruction decoding"),
             _ => Err(HartError::InstructionNotFound),
         }
     }
