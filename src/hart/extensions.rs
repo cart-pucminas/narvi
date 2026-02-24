@@ -2,10 +2,10 @@ pub mod f;
 pub mod m;
 pub mod d;
 
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 #[allow(dead_code, unused_variables)]
-#[derive(Debug, Clone, Copy, Serialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub struct Extensions {
     pub m: bool,
     pub a: bool,

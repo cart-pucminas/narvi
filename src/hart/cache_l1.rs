@@ -1,9 +1,8 @@
 use serde::Serialize;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, PartialEq)]
 pub struct CacheL1 {
     arr: Vec<u8>,
-    size: usize
 }
 
 #[allow(dead_code)]
@@ -16,7 +15,6 @@ impl CacheL1 {
     pub fn new(size: usize) -> Self {
         CacheL1 {
             arr: vec![0; size],
-            size
         }
     }
 
@@ -33,6 +31,7 @@ impl CacheL1 {
         self.arr[addr]
     }
 
+    /*
     /// Returns the size of the memory
     ///
     /// # Arguments
@@ -41,6 +40,7 @@ impl CacheL1 {
     pub fn size(&self) -> usize {
         self.size
     }
+    */
     
     /// Returns a halfword (2 bytes) in little-endian format,
     /// starting from `addr`.

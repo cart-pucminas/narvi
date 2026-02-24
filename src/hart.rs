@@ -42,7 +42,7 @@ pub enum HartError {
     FLENTooShort,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, PartialEq)]
 enum FRegs {
     F(Vec<f32>),
     D(Vec<f64>),
@@ -59,8 +59,15 @@ impl FRegs {
     }
 }
 
+#[derive(Debug, Deserialize)]
+struct HartConfig {
+    extensions: Extensions,
+    l1_size: usize,
+}
+
 #[allow(dead_code, unused_variables)]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[serde(from = "HartConfig")]
 pub struct Hart {
     extensions: Extensions,
     // Registers
@@ -68,31 +75,39 @@ pub struct Hart {
     regs: Vec<u64>,
     #[serde(skip)]
     pc: u64,
+
+    // Memory
+    #[serde(skip)]
     l1: CacheL1,
+    l1_size: usize,
 
     // __Floating Point__
+    #[serde(skip)]
     f_regs: FRegs,
+    #[serde(skip)]
     flen: u8,
+    #[serde(skip)]
     fcsr: u32,
 }
 
-/*
-impl Serialize for Hart<'_> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer, 
-    {
-        let mut state = serializer.serialize_struct("Hart", 6)?;
-        state.serialize_field("M_extension", &self.extensions.m)?;
-        state.serialize_field("A_extension", &self.extensions.a)?;
-        state.serialize_field("C_extension", &self.extensions.c)?;
-        state.serialize_field("F_extension", &self.extensions.f)?;
-        state.serialize_field("D_extension", &self.extensions.d)?;
-        state.serialize_field("L1_size", &self.l1.size())?;
-        state.end()
+impl From<HartConfig> for Hart {
+    fn from(config: HartConfig) -> Self {
+        Hart{
+            extensions: config.extensions,
+            regs: vec![0; 32],
+            pc: 0,
+            l1: CacheL1::new(config.l1_size),
+            l1_size: config.l1_size,
+            f_regs: FRegs::new(config.extensions.f, config.extensions.d),
+            flen: match (config.extensions.f, config.extensions.d) {
+                (true, false) => 32,
+                (_, true) => 64,
+                (false, false) => 0,
+            },
+            fcsr: 0,
+        }
     }
 }
-*/
 
 impl Hart {
     pub fn from_extensions(extensions: &Extensions, cache_size: usize) -> Hart {
@@ -101,6 +116,7 @@ impl Hart {
             regs: vec![0; 32],
             pc: 0,
             l1: CacheL1::new(cache_size),
+            l1_size: cache_size,
             f_regs: FRegs::new(extensions.f, extensions.d),
             flen: match (extensions.f, extensions.d) {
                 (true, false) => 32,
