@@ -2,7 +2,7 @@ use super::{Hart, HartError};
 use crate::util::{get_bits, sign_extend_32, sign_extend_64};
 
 #[allow(dead_code, unused_variables)]
-impl Hart<'_> {
+impl Hart {
     pub(super) fn execute_rv64i(&mut self, inst: u32) -> Result<(), HartError> {
         let opcode = get_bits(6, 0, inst);
         match opcode {

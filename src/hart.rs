@@ -8,7 +8,10 @@ use extensions::{
 
 use cache_l1::CacheL1;
 
-use serde::ser::{Serialize, Serializer, SerializeStruct};
+use serde::{Serialize, Deserialize};
+
+// use serde::ser::{Serialize, Serializer, SerializeStruct};
+// use serde::de::{self, Deserialize, Deserializer, Visitor, SeqAccess, MapAccess};
 
 #[allow(dead_code, unused_variables, non_camel_case_types)]
 #[derive(Debug)]
@@ -39,7 +42,7 @@ pub enum HartError {
     FLENTooShort,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 enum FRegs {
     F(Vec<f32>),
     D(Vec<f64>),
@@ -57,11 +60,13 @@ impl FRegs {
 }
 
 #[allow(dead_code, unused_variables)]
-#[derive(Debug)]
-pub struct Hart <'a>{
-    extensions: &'a Extensions,
+#[derive(Debug, Serialize)]
+pub struct Hart {
+    extensions: Extensions,
     // Registers
+    #[serde(skip)]
     regs: Vec<u64>,
+    #[serde(skip)]
     pc: u64,
     l1: CacheL1,
 
@@ -71,6 +76,7 @@ pub struct Hart <'a>{
     fcsr: u32,
 }
 
+/*
 impl Serialize for Hart<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
@@ -86,11 +92,12 @@ impl Serialize for Hart<'_> {
         state.end()
     }
 }
+*/
 
-impl Hart<'_> {
-    pub fn from_extensions(extensions: &Extensions, cache_size: usize) -> Hart<'_> {
+impl Hart {
+    pub fn from_extensions(extensions: &Extensions, cache_size: usize) -> Hart {
         Hart {
-            extensions,
+            extensions: extensions.clone(),
             regs: vec![0; 32],
             pc: 0,
             l1: CacheL1::new(cache_size),

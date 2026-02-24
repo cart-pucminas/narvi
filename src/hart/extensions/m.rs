@@ -2,7 +2,7 @@ use crate::hart::{Hart, HartError};
 use crate::util::{get_bits, sign_extend_64, sign_extend_128};
 
 #[allow(dead_code)]
-impl Hart<'_> {
+impl Hart {
     pub(super) fn execute_m(&mut self, inst: u32) -> Result<(), HartError> {
         let opcode = get_bits(6, 0, inst);
         let funct3 = get_bits(14, 12, inst);

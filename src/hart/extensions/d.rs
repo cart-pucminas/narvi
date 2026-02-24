@@ -6,7 +6,7 @@ use crate::util::{
 };
 
 #[allow(dead_code, unused_variables)]
-impl Hart<'_> {
+impl Hart {
     pub(super) fn execute_d(&mut self, inst: u32) -> Result<(), HartError> {
         let opcode = get_bits(6, 0, inst);
         match opcode {
