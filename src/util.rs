@@ -2132,6 +2132,154 @@ pub mod rounding_modes {
         res
     }
 
+    pub fn u64_to_float_down(a: u64) -> f32 {
+        let mut res : f32 = 0.0;
+        if (a & 0b10000000) != 1 { // if it is "negative"
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x3F80",
+                    "ldmxcsr [rsp + 4]",
+                    "cvtsi2ss {res}, {a:r}",
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(xmm_reg) res,
+                    a = in(reg) a
+                );
+            }
+        } else {
+            // divide number so it fits + lsb to ensure precision
+            let half_lsb = (a<<2) | (a & 0b1);
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x3F80",
+                    "ldmxcsr [rsp + 4]",
+                    "cvtsi2ss {res}, {half_lsb:r}",
+                    "addss {res}, {res}",       // double value back
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(xmm_reg) res,
+                    half_lsb = in(reg) half_lsb
+                );
+            }
+        }
+        res
+    }
+
+    pub fn u64_to_float_up(a: u64) -> f32 {
+        let mut res : f32 = 0.0;
+        if (a & 0b10000000) != 1 { // if it is "negative"
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x5F80",
+                    "ldmxcsr [rsp + 4]",
+                    "cvtsi2ss {res}, {a:r}",
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(xmm_reg) res,
+                    a = in(reg) a
+                );
+            }
+        } else {
+            // divide number so it fits + lsb to ensure precision
+            let half_lsb = (a<<2) | (a & 0b1);
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x5F80",
+                    "ldmxcsr [rsp + 4]",
+                    "cvtsi2ss {res}, {half_lsb:r}",
+                    "addss {res}, {res}",       // double value back
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(xmm_reg) res,
+                    half_lsb = in(reg) half_lsb
+                );
+            }
+        }
+        res
+    }
+
+    pub fn u64_to_float_near(a: u64) -> f32 {
+        let mut res : f32 = 0.0;
+        if (a & 0b10000000) != 1 { // if it is "negative"
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x1F80",
+                    "ldmxcsr [rsp + 4]",
+                    "cvtsi2ss {res}, {a:r}",
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(xmm_reg) res,
+                    a = in(reg) a
+                );
+            }
+        } else {
+            // divide number so it fits + lsb to ensure precision
+            let half_lsb = (a<<2) | (a & 0b1);
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x1F80",
+                    "ldmxcsr [rsp + 4]",
+                    "cvtsi2ss {res}, {half_lsb:r}",
+                    "addss {res}, {res}",       // double value back
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(xmm_reg) res,
+                    half_lsb = in(reg) half_lsb
+                );
+            }
+        }
+        res
+    }
+
+    pub fn u64_to_float_zero(a: u64) -> f32 {
+        let mut res : f32 = 0.0;
+        if (a & 0b10000000) != 1 { // if it is "negative"
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x7F80",
+                    "ldmxcsr [rsp + 4]",
+                    "cvtsi2ss {res}, {a:r}",
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(xmm_reg) res,
+                    a = in(reg) a
+                );
+            }
+        } else {
+            // divide number so it fits + lsb to ensure precision
+            let half_lsb = (a<<2) | (a & 0b1);
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x7F80",
+                    "ldmxcsr [rsp + 4]",
+                    "cvtsi2ss {res}, {half_lsb:r}",
+                    "addss {res}, {res}",       // double value back
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(xmm_reg) res,
+                    half_lsb = in(reg) half_lsb
+                );
+            }
+        }
+        res
+    }
+
     pub fn float_to_i32 (a: f32, rm: u8) -> i32 {
         match rm {
             0b000 => float_to_i32_near(a),
@@ -2167,7 +2315,18 @@ pub mod rounding_modes {
     }
 
     pub fn float_to_u64 (a: f32, rm: u8) -> u64 {
-        todo!("Needs proper conversion");
+        match rm {
+            0b000 => float_to_u64_near(a),
+            0b001 => float_to_u64_zero(a),
+            0b010 => float_to_u64_down(a),
+            0b011 => float_to_u64_up(a),
+            0b100 => float_to_u64_near(a),
+            0b101..0b111 => {
+                eprintln!("WARNING: Reserved RM used ({rm:03b}). Returned 0.");
+                0
+            },
+            _ => unreachable!("Should not be possible, RM is 3 bits only."),
+        }
     }
 
     pub fn i32_to_float (a: i32, rm: u8) -> f32 {
@@ -2205,7 +2364,18 @@ pub mod rounding_modes {
     }
 
     pub fn u64_to_float (a: u64, rm: u8) -> f32 {
-        todo!("Needs proper conversion");
+        match rm {
+            0b000 => u64_to_float_near(a),
+            0b001 => u64_to_float_zero(a),
+            0b010 => u64_to_float_down(a),
+            0b011 => u64_to_float_up(a),
+            0b100 => u64_to_float_near(a),
+            0b101..0b111 => {
+                eprintln!("WARNING: Reserved RM used ({rm:03b}). Canonical NaN returned.");
+                f32::NAN
+            },
+            _ => unreachable!("Should not be possible, RM is 3 bits only."),
+        }
     }
 
     pub fn double_to_i32_down(a: f64) -> i32 {
@@ -2422,6 +2592,171 @@ pub mod rounding_modes {
         }
         res
     }
+
+    pub fn double_to_u64_down(a: f64) -> u64 {
+        let res : i64;
+        if a < (E63 as f64) {
+            println!("up");
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x3F80",
+                    "ldmxcsr [rsp + 4]",
+                    "cvtss2si {res}, {a}",
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(reg) res,
+                    a = in(xmm_reg) a
+                );
+            }
+        } else {
+            let xmm1: f64 = E63 as f64;
+            let high_bit: i64 = i64::MIN;
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x3F80",
+                    "ldmxcsr [rsp + 4]",
+                    "subss {a}, {xmm1}",
+                    "cvtss2si {res:r}, {a}",
+                    "xor {res:r}, {high_bit:r}",
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(reg) res,
+                    high_bit = in (reg) high_bit,
+                    a = in(xmm_reg) a,
+                    xmm1 = in(xmm_reg) xmm1
+                );
+            }
+        }
+        res as u64
+    }
+
+    pub fn double_to_u64_up(a: f64) -> u64 {
+        let res : i64;
+        if a < (E63 as f64) {
+            println!("up");
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x5F80",
+                    "ldmxcsr [rsp + 4]",
+                    "cvtss2si {res}, {a}",
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(reg) res,
+                    a = in(xmm_reg) a
+                );
+            }
+        } else {
+            let xmm1: f64 = E63 as f64;
+            let high_bit: i64 = i64::MIN;
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x5F80",
+                    "ldmxcsr [rsp + 4]",
+                    "subss {a}, {xmm1}",
+                    "cvtss2si {res:r}, {a}",
+                    "xor {res:r}, {high_bit:r}",
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(reg) res,
+                    high_bit = in (reg) high_bit,
+                    a = in(xmm_reg) a,
+                    xmm1 = in(xmm_reg) xmm1
+                );
+            }
+        }
+        res as u64
+    }
+
+    pub fn double_to_u64_near(a: f64) -> u64 {
+        let res : i64;
+        if a < (E63 as f64) {
+            println!("up");
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x1F80",
+                    "ldmxcsr [rsp + 4]",
+                    "cvtss2si {res}, {a}",
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(reg) res,
+                    a = in(xmm_reg) a
+                );
+            }
+        } else {
+            let xmm1: f64 = E63 as f64;
+            let high_bit: i64 = i64::MIN;
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x1F80",
+                    "ldmxcsr [rsp + 4]",
+                    "subss {a}, {xmm1}",
+                    "cvtss2si {res:r}, {a}",
+                    "xor {res:r}, {high_bit:r}",
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(reg) res,
+                    high_bit = in (reg) high_bit,
+                    a = in(xmm_reg) a,
+                    xmm1 = in(xmm_reg) xmm1
+                );
+            }
+        }
+        res as u64
+    }
+
+    pub fn double_to_u64_zero(a: f64) -> u64 {
+        let res : i64;
+        if a < (E63 as f64) {
+            println!("up");
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x7F80",
+                    "ldmxcsr [rsp + 4]",
+                    "cvtss2si {res}, {a}",
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(reg) res,
+                    a = in(xmm_reg) a
+                );
+            }
+        } else {
+            let xmm1: f64 = E63 as f64;
+            let high_bit: i64 = i64::MIN;
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x7F80",
+                    "ldmxcsr [rsp + 4]",
+                    "subss {a}, {xmm1}",
+                    "cvtss2si {res:r}, {a}",
+                    "xor {res:r}, {high_bit:r}",
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(reg) res,
+                    high_bit = in (reg) high_bit,
+                    a = in(xmm_reg) a,
+                    xmm1 = in(xmm_reg) xmm1
+                );
+            }
+        }
+        res as u64
+    }
+
     pub fn i64_to_double_down(a: i64) -> f64 {
         let mut res : f64 = 0.0;
         unsafe {
@@ -2510,7 +2845,7 @@ pub mod rounding_modes {
     }
 
     pub fn double_to_u32 (a: f64, rm: u8) -> u32 {
-        todo!("Needs proper conversion");
+        double_to_i32(a, rm) as u32
     }
 
     pub fn i32_to_double (a: i32, rm: u8) -> f64 {
@@ -2548,7 +2883,18 @@ pub mod rounding_modes {
     }
 
     pub fn double_to_u64 (a: f64, rm: u8) -> u64 {
-        todo!("Needs proper conversion");
+        match rm {
+            0b000 => double_to_u64_near(a),
+            0b001 => double_to_u64_zero(a),
+            0b010 => double_to_u64_down(a),
+            0b011 => double_to_u64_up(a),
+            0b100 => double_to_u64_near(a),
+            0b101..0b111 => {
+                eprintln!("WARNING: Reserved RM used ({rm:03b}). Returned 0.");
+                0
+            },
+            _ => unreachable!("Should not be possible, RM is 3 bits only."),
+        }
     }
 
     pub fn i64_to_double (a: i64, rm: u8) -> f64 {
