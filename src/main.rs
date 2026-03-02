@@ -8,6 +8,7 @@ use std::fs::File;
 use std::io::prelude::*;
 
 fn main() {
+    
     let hart = Hart::from_extensions(&Extensions{
         m:true, a: false, c:false, f:true, d:false
         }, 

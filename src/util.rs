@@ -85,6 +85,8 @@ pub fn sign_extend_32(value: u32, original_size: u8) -> u32 {
 
 pub mod rounding_modes {
 
+    const E63 : f32 = 9223372036854775808.0; // 2^63
+
     use std::arch::asm;
 
     pub fn float_mul(a: f32, b: f32, rm: u8) -> f32 {
@@ -1767,6 +1769,7 @@ pub mod rounding_modes {
         res
     }
 
+
     pub fn float_to_i64_up(a: f32) -> i64 {
         let mut res : i64 = 0x0000;
         unsafe {
@@ -1819,6 +1822,170 @@ pub mod rounding_modes {
             );
         }
         res
+    }
+
+    pub fn float_to_u64_down(a: f32) -> u64 {
+        let res : i64;
+        if a < E63 {
+            println!("up");
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x3F80",
+                    "ldmxcsr [rsp + 4]",
+                    "cvtss2si {res}, {a}",
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(reg) res,
+                    a = in(xmm_reg) a
+                );
+            }
+        } else {
+            let xmm1: f32 = E63;
+            let high_bit: i64 = i64::MIN;
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x3F80",
+                    "ldmxcsr [rsp + 4]",
+                    "subss {a}, {xmm1}",
+                    "cvtss2si {res:r}, {a}",
+                    "xor {res:r}, {high_bit:r}",
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(reg) res,
+                    high_bit = in (reg) high_bit,
+                    a = in(xmm_reg) a,
+                    xmm1 = in(xmm_reg) xmm1
+                );
+            }
+        }
+        res as u64
+    }
+
+    pub fn float_to_u64_up(a: f32) -> u64 {
+        let res : i64;
+        if a < E63 {
+            println!("up");
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x5F80",
+                    "ldmxcsr [rsp + 4]",
+                    "cvtss2si {res}, {a}",
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(reg) res,
+                    a = in(xmm_reg) a
+                );
+            }
+        } else {
+            let xmm1: f32 = E63;
+            let high_bit: i64 = i64::MIN;
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x5F80",
+                    "ldmxcsr [rsp + 4]",
+                    "subss {a}, {xmm1}",
+                    "cvtss2si {res:r}, {a}",
+                    "xor {res:r}, {high_bit:r}",
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(reg) res,
+                    high_bit = in (reg) high_bit,
+                    a = in(xmm_reg) a,
+                    xmm1 = in(xmm_reg) xmm1
+                );
+            }
+        }
+        res as u64
+    }
+
+    pub fn float_to_u64_near(a: f32) -> u64 {
+        let res : i64;
+        if a < E63 {
+            println!("up");
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x1F80",
+                    "ldmxcsr [rsp + 4]",
+                    "cvtss2si {res}, {a}",
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(reg) res,
+                    a = in(xmm_reg) a
+                );
+            }
+        } else {
+            let xmm1: f32 = E63;
+            let high_bit: i64 = i64::MIN;
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x1F80",
+                    "ldmxcsr [rsp + 4]",
+                    "subss {a}, {xmm1}",
+                    "cvtss2si {res:r}, {a}",
+                    "xor {res:r}, {high_bit:r}",
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(reg) res,
+                    high_bit = in (reg) high_bit,
+                    a = in(xmm_reg) a,
+                    xmm1 = in(xmm_reg) xmm1
+                );
+            }
+        }
+        res as u64
+    }
+
+    pub fn float_to_u64_zero(a: f32) -> u64 {
+        let res : i64;
+        if a < E63 {
+            println!("up");
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x7F80",
+                    "ldmxcsr [rsp + 4]",
+                    "cvtss2si {res}, {a}",
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(reg) res,
+                    a = in(xmm_reg) a
+                );
+            }
+        } else {
+            let xmm1: f32 = E63;
+            let high_bit: i64 = i64::MIN;
+            unsafe {
+                asm!(
+                    "sub rsp, 8",
+                    "stmxcsr [rsp]",
+                    "mov dword ptr [rsp + 4], 0x7F80",
+                    "ldmxcsr [rsp + 4]",
+                    "subss {a}, {xmm1}",
+                    "cvtss2si {res:r}, {a}",
+                    "xor {res:r}, {high_bit:r}",
+                    "ldmxcsr [rsp]",  // restore MXCSR 
+                    "add rsp, 8",
+                    res = out(reg) res,
+                    high_bit = in (reg) high_bit,
+                    a = in(xmm_reg) a,
+                    xmm1 = in(xmm_reg) xmm1
+                );
+            }
+        }
+        res as u64
     }
 
     pub fn i32_to_float_down(a: i32) -> f32 {
@@ -2000,7 +2167,7 @@ pub mod rounding_modes {
     }
 
     pub fn float_to_u64 (a: f32, rm: u8) -> u64 {
-        float_to_i64(a, rm) as u64
+        todo!("Needs proper conversion");
     }
 
     pub fn i32_to_float (a: i32, rm: u8) -> f32 {
@@ -2019,7 +2186,7 @@ pub mod rounding_modes {
     }
 
     pub fn u32_to_float (a: u32, rm: u8) -> f32 {
-        i64_to_float(a as i64, rm)
+        todo!("Needs proper conversion");
     }
 
     pub fn i64_to_float (a: i64, rm: u8) -> f32 {
@@ -2038,7 +2205,7 @@ pub mod rounding_modes {
     }
 
     pub fn u64_to_float (a: u64, rm: u8) -> f32 {
-        i64_to_float(a as i64, rm)
+        todo!("Needs proper conversion");
     }
 
     pub fn double_to_i32_down(a: f64) -> i32 {
@@ -2343,7 +2510,7 @@ pub mod rounding_modes {
     }
 
     pub fn double_to_u32 (a: f64, rm: u8) -> u32 {
-        double_to_i32(a, rm) as u32
+        todo!("Needs proper conversion");
     }
 
     pub fn i32_to_double (a: i32, rm: u8) -> f64 {
@@ -2362,7 +2529,7 @@ pub mod rounding_modes {
     }
 
     pub fn u32_to_double (a: u32, rm: u8) -> f64 {
-        i32_to_double(a as i32, rm)
+        todo!("Needs proper conversion");
     }
 
     pub fn double_to_i64 (a: f64, rm: u8) -> i64 {
@@ -2381,7 +2548,7 @@ pub mod rounding_modes {
     }
 
     pub fn double_to_u64 (a: f64, rm: u8) -> u64 {
-        double_to_i64(a, rm) as u64
+        todo!("Needs proper conversion");
     }
 
     pub fn i64_to_double (a: i64, rm: u8) -> f64 {
@@ -2400,7 +2567,7 @@ pub mod rounding_modes {
     }
 
     pub fn u64_to_double (a: u64, rm: u8) -> f64 {
-        i64_to_double(a as i64, rm)
+        todo!("Needs proper conversion");
     }
 
     pub fn double_to_float_down(a: f64) -> f32 {
