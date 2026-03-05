@@ -1,4 +1,4 @@
-use risky_sim::{
+use narvi::{
     hart::extensions::Extensions,
     hart::Hart,
     util::rounding_modes::*,
