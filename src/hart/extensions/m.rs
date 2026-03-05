@@ -73,7 +73,13 @@ impl Hart {
         let rs2 = get_bits(24, 20, inst) as u8;
         let lhs = self.get_reg(rs1)? as i64;
         let rhs = self.get_reg(rs2)? as i64;
-        self.set_reg(rd, lhs.wrapping_div(rhs) as u64)?;
+        if rhs == 0 {
+            self.set_reg(rd, u64::MAX)?;
+        } else if lhs == i64::MIN && rhs == -1 {
+            self.set_reg(rd, lhs as u64)?;
+        } else {
+            self.set_reg(rd, lhs.wrapping_div(rhs) as u64)?;
+        }
         Ok(())
     }
 
@@ -83,12 +89,11 @@ impl Hart {
         let rs2 = get_bits(24, 20, inst) as u8;
         let lhs = self.get_reg(rs1)?;
         let rhs = self.get_reg(rs2)?;
-
         if rhs == 0 {
-            todo!("don't know what to do with division by 0 yet");
+            self.set_reg(rd, u64::MAX)?;
+        } else {
+            self.set_reg(rd, lhs.wrapping_div(rhs))?;
         }
-
-        self.set_reg(rd, lhs.wrapping_div(rhs))?;
         Ok(())
     }
 
@@ -98,16 +103,13 @@ impl Hart {
         let rs2 = get_bits(24, 20, inst) as u8;
         let lhs = self.get_reg(rs1)? as i64;
         let rhs = self.get_reg(rs2)? as i64;
-
         if rhs == 0 {
-            todo!("don't know what to do with division by 0 yet");
+            self.set_reg(rd, lhs as u64)?;
+        } else if lhs == i64::MIN && rhs == -1 {
+            self.set_reg(rd, 0)?;
+        } else {
+            self.set_reg(rd, (lhs % rhs) as u64)?;
         }
-
-        if lhs == i64::MIN && rhs == -1 {
-            todo!("don't know what happens on overflow yet");
-        }
-
-        self.set_reg(rd, (lhs % rhs) as u64)?;
         Ok(())
     }
 
@@ -117,12 +119,11 @@ impl Hart {
         let rs2 = get_bits(24, 20, inst) as u8;
         let lhs = self.get_reg(rs1)? as u64;
         let rhs = self.get_reg(rs2)? as u64;
-
         if rhs == 0 {
-            todo!("don't know what to do with division by 0 yet");
+            self.set_reg(rd, lhs)?;
+        } else {
+            self.set_reg(rd, lhs % rhs)?;
         }
-
-        self.set_reg(rd, lhs % rhs)?;
         Ok(())
     }
 
@@ -130,8 +131,6 @@ impl Hart {
         let rd = get_bits(11, 7, inst) as u8;
         let rs1 = get_bits(19, 15, inst) as u8;
         let rs2 = get_bits(24, 20, inst) as u8;
-        print!("{:b}\n", inst);
-        print!("{}, {}", rs1, rs2);
         let lhs = self.get_reg(rs1)? as i32;
         let rhs = self.get_reg(rs2)? as i32;
         let result = lhs.wrapping_mul(rhs) as u64;
@@ -145,13 +144,14 @@ impl Hart {
         let rs2 = get_bits(24, 20, inst) as u8;
         let lhs = self.get_reg(rs1)? as i32;
         let rhs = self.get_reg(rs2)? as i32;
-
         if rhs == 0 {
-            todo!("don't know what to do with division by 0 yet");
+            self.set_reg(rd, u64::MAX)?;
+        } else if lhs == i32::MIN && rhs == -1 {
+            self.set_reg(rd, lhs as u64)?;
+        } else {
+            let result = (lhs / rhs) as u64;
+            self.set_reg(rd, sign_extend_64(result, 32))?;
         }
-
-        let result = (lhs / rhs) as u64;
-        self.set_reg(rd, sign_extend_64(result, 32))?;
         Ok(())
     }
 
@@ -161,12 +161,11 @@ impl Hart {
         let rs2 = get_bits(24, 20, inst) as u8;
         let lhs = self.get_reg(rs1)? as u32;
         let rhs = self.get_reg(rs2)? as u32;
-
         if rhs == 0 {
-            todo!("don't know what to do with division by 0 yet");
+            self.set_reg(rd, u64::MAX)?;
+        } else {
+            self.set_reg(rd, (lhs / rhs) as u64)?;
         }
-
-        self.set_reg(rd, (lhs / rhs) as u64)?;
         Ok(())
     }
 
@@ -176,17 +175,14 @@ impl Hart {
         let rs2 = get_bits(24, 20, inst) as u8;
         let lhs = self.get_reg(rs1)? as i32;
         let rhs = self.get_reg(rs2)? as i32;
-        let result = (lhs % rhs) as u64;
-
         if rhs == 0 {
-            todo!("don't know what to do with division by 0 yet");
+            self.set_reg(rd, sign_extend_64(lhs as u64, 32) as u64)?;
+        } else if lhs == i32::MIN && rhs == -1 {
+            self.set_reg(rd, 0)?;
+        } else {
+            let result = (lhs % rhs) as u64;
+            self.set_reg(rd, sign_extend_64(result, 32) as u64)?;
         }
-
-        if lhs == i32::MIN && rhs == -1 {
-            todo!("don't know what happens on overflow yet");
-        }
-
-        self.set_reg(rd, sign_extend_64(result, 32) as u64)?;
         Ok(())
     }
 
@@ -196,12 +192,12 @@ impl Hart {
         let rs2 = get_bits(24, 20, inst) as u8;
         let lhs = self.get_reg(rs1)? as u32;
         let rhs = self.get_reg(rs2)? as u32;
-
         if rhs == 0 {
-            todo!("don't know what to do with division by 0 yet");
+            self.set_reg(rd, sign_extend_64(lhs as u64, 32) as u64)?;
+        } else {
+            let result = (lhs % rhs) as u64;
+            self.set_reg(rd, sign_extend_64(result, 32) as u64)?;
         }
-
-        self.set_reg(rd, (lhs % rhs) as u64)?;
         Ok(())
     }
 }

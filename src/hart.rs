@@ -112,7 +112,7 @@ impl From<HartConfig> for Hart {
 impl Hart {
     pub fn from_extensions(extensions: &Extensions, cache_size: usize) -> Hart {
         Hart {
-            extensions: extensions.clone(),
+            extensions: *extensions,
             regs: vec![0; 32],
             pc: 0,
             l1: CacheL1::new(cache_size),
