@@ -813,7 +813,7 @@ pub mod rounding_modes {
 
     pub fn u32_to_float_rm(a: u32, rm: u32) -> f32 {
         let mut res : f32 = 0.0;
-        if (a & 0b10000000) != 1 { // if it is "negative"
+        if (a & 0b10000000) == 0 { // if it is "negative"
             unsafe {
                 asm!(
                     "sub rsp, 8",
@@ -871,7 +871,7 @@ pub mod rounding_modes {
 
     pub fn u64_to_float_rm(a: u64, rm: u32) -> f32 {
         let mut res : f32 = 0.0;
-        if (a & 0b10000000) != 1 { // if it is "negative"
+        if (a & 0b10000000) == 0 { // if it is "negative"
             unsafe {
                 asm!(
                     "sub rsp, 8",
@@ -1057,7 +1057,7 @@ pub mod rounding_modes {
 
     pub fn u32_to_double_rm(a: u32, rm: u32) -> f64 {
         let mut res : f64 = 0.0;
-        if (a & 0b10000000) != 1 { // if it is "negative"
+        if (a & 0b10000000) == 0 { // if it is "negative"
             unsafe {
                 asm!(
                     "sub rsp, 8",
@@ -1177,7 +1177,7 @@ pub mod rounding_modes {
 
     pub fn u64_to_double_rm(a: u64, rm: u32) -> f64 {
         let mut res : f64 = 0.0;
-        if (a & 0b10000000) != 1 { // if it is "negative"
+        if (a & 0b10000000) == 0 { // if it is "negative"
             unsafe {
                 asm!(
                     "sub rsp, 8",
