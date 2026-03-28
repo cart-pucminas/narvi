@@ -2,7 +2,9 @@ use narvi::{
     hart::extensions::Extensions,
     hart::Hart,
     util::rounding_modes::*,
+    eventsys::*    
 };
+
 
 use std::fs::File;
 use std::io::prelude::*;
