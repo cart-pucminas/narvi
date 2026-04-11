@@ -1,12 +1,11 @@
 pub mod extensions;
 mod rv64i;
-mod cache_l1;
 
 use extensions::{
     Extensions,
 };
 
-use cache_l1::CacheL1;
+use memory::CacheL1;
 
 use serde::{Serialize, Deserialize};
 

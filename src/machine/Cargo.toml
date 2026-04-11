@@ -1,0 +1,15 @@
+[package]
+name = "machine"
+version.workspace = true
+edition.workspace = true
+autobins = false
+
+[dependencies]
+hart = { path = "../hart" }
+memory = { path = "../memory" }
+serde.workspace = true
+serde_yaml.workspace = true
+
+[[bin]]
+name = "narvi-cli"
+path = "src/main.rs"
