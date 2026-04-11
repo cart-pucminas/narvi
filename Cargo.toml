@@ -1,5 +1,5 @@
 [package]
-name = "risky-sim"
+name = "narvi"
 version = "0.1.0"
 edition = "2024"
 
@@ -10,5 +10,5 @@ serde_json = "1.0.149"
 serde_yaml = "0.9.34"
 
 [[bin]]
-name = "risky-sim"
+name = "narvi"
 path = "src/main.rs"

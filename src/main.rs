@@ -1,4 +1,4 @@
-use risky_sim::{
+use narvi::{
     hart::extensions::Extensions,
     hart::Hart,
     util::rounding_modes::*,
@@ -8,6 +8,8 @@ use std::fs::File;
 use std::io::prelude::*;
 
 fn main() {
+    
+    println!("{}", u32_to_float_rm(5, 0b011));
     let hart = Hart::from_extensions(&Extensions{
         m:true, a: false, c:false, f:true, d:false
         }, 

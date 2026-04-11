@@ -1,7 +1,7 @@
 use crate::hart::{Hart, HartError};
 use crate::util::{
     get_bits,
-    sign_extend_32, sign_extend_64,
+    sign_extend_64,
     rounding_modes::*,
 };
 
