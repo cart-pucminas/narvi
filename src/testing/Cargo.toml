@@ -5,7 +5,7 @@ edition.workspace = true
 autobins = false
 
 [dependencies]
-hart = { path = "../harts" }
+harts = { path = "../harts" }
 machine = { path = "../machine" }
 memory = { path = "../memory" }
 serde_yaml.workspace = true

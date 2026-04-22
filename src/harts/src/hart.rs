@@ -1,4 +1,5 @@
-mod inst;
+pub mod extensions;
+mod rv64i;
 
 use extensions::{
     Extensions,
