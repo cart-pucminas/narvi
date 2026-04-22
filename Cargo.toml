@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "src/hart",
+    "src/harts",
     "src/memory",
     "src/machine",
     "src/testing",

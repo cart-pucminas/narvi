@@ -1,5 +1,4 @@
-pub mod extensions;
-mod rv64i;
+mod inst;
 
 use extensions::{
     Extensions,
@@ -41,7 +40,7 @@ pub enum HartError {
     FLENTooShort,
 }
 
-#[derive(Debug, Serialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, PartialEq)]
 enum FRegs {
     F(Vec<f32>),
     D(Vec<f64>),
@@ -65,7 +64,7 @@ struct HartConfig {
 }
 
 #[allow(dead_code, unused_variables)]
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(from = "HartConfig")]
 pub struct Hart {
     extensions: Extensions,
