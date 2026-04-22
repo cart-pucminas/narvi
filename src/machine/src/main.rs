@@ -1,11 +1,10 @@
 use machine::{Machine, MachineConfig};
-use serde::Serialize;
 use std::fs::File;
 use std::io::prelude::*;
 
 fn main() {
     let config = MachineConfig::default();
-    let machine = Machine::new(&config);
+    let _machine = Machine::new(&config);
 
     let yaml = serde_yaml::to_string(&config).unwrap();
     {

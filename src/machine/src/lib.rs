@@ -1,4 +1,4 @@
-use hart::{extensions::Extensions, Hart};
+use harts::hart::{extensions::Extensions, Hart};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Eq)]
