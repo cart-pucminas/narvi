@@ -47,7 +47,7 @@ The following types are available:
 
 The scope must consist of a short text that describes the codebase section affected by the commit. It should be preferably a module name.
 
-If the commit consists of a breaking change, that is, something that adds layers of incompatibility to previous versions, the closing parenthesis succeeding the scopt must follow an exclamation point (`!`).
+If the commit consists of a breaking change, that is, something that adds layers of incompatibility to previous versions, the closing parenthesis succeeding the scope must follow an exclamation point (`!`).
 
 The description is a short summary of the code changes, and it must not exceed 75 characters in total, disregarding the preceding space.
 
