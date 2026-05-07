@@ -1,0 +1,10 @@
+[package]
+name = "harts"
+version.workspace = true
+edition.workspace = true
+autobins = false
+
+[dependencies]
+memory = { path = "../memory" }
+rounding_mode.workspace = true
+serde.workspace = true
