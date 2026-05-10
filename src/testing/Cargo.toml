@@ -1,14 +1,16 @@
 [package]
 name = "testing"
 version.workspace = true
+license-file.workspace = true
+authors.workspace = true
 edition.workspace = true
-autobins = false
+homepage.workspace = true
 
 [dependencies]
-harts = { path = "../harts" }
-machine = { path = "../machine" }
-memory = { path = "../memory" }
-serde_yaml.workspace = true
+harts = { workspace = true }
+machine = { workspace = true }
+memory = { workspace = true }
+serde_yaml = { workspace = true }
 
 [[bin]]
 name = "narvi-test"

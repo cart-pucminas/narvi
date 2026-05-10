@@ -9,6 +9,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
+name = "event_system"
+version = "0.1.0"
+
+[[package]]
 name = "harts"
 version = "0.1.0"
 dependencies = [
@@ -49,6 +53,7 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 name = "machine"
 version = "0.1.0"
 dependencies = [
+ "event_system",
  "harts",
  "memory",
  "serde",

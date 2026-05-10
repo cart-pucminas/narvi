@@ -1,6 +1,4 @@
-mod event;
-
-use event::Event;
+use crate::Event;
 
 /// Event queue element
 struct EventNode {
