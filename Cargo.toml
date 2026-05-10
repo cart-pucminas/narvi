@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "src/event_system",
+    "src/event-system",
     "src/harts",
     "src/memory",
     "src/machine",
@@ -20,7 +20,7 @@ edition = "2024"
 homepage = "https://github.com/cart-pucminas/narvi"
 
 [workspace.dependencies]
-event_system = { path = "src/event_system" }
+event-system = { path = "src/event-system" }
 harts = { path = "src/harts" }
 machine = { path = "src/machine" }
 memory = { path = "src/memory" }

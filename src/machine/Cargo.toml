@@ -7,7 +7,7 @@ edition.workspace = true
 homepage.workspace = true
 
 [dependencies]
-event_system = { workspace = true }
+event-system = { workspace = true }
 harts = { workspace = true }
 memory = { workspace = true }
 serde = { workspace = true }
