@@ -5,6 +5,7 @@ license-file.workspace = true
 authors.workspace = true
 edition.workspace = true
 homepage.workspace = true
+autobins = false
 
 [dependencies]
 serde.workspace = true
