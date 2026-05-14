@@ -1,0 +1,17 @@
+[package]
+name = "testing"
+version.workspace = true
+license-file.workspace = true
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+
+[dependencies]
+harts = { workspace = true }
+machine = { workspace = true }
+memory = { workspace = true }
+serde_yaml = { workspace = true }
+
+[[bin]]
+name = "narvi-test"
+path = "src/main.rs"

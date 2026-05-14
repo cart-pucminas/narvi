@@ -1,14 +1,30 @@
-[package]
-name = "narvi"
-version = "0.1.0"
-edition = "2024"
+[workspace]
+members = [
+    "src/event-system",
+    "src/harts",
+    "src/memory",
+    "src/machine",
+    "src/testing",
+]
+resolver = "3"
 
-[dependencies]
+[workspace.package]
+version = "0.1.0"
+license-file = "LICENSE"
+authors = [
+    "Antônio Drumond Cota de Souza", 
+    "Davi Ferreira Puddo", 
+    "Mateus Henrique Medeiros Diniz"
+]
+edition = "2024"
+homepage = "https://github.com/cart-pucminas/narvi"
+
+[workspace.dependencies]
+event-system = { path = "src/event-system" }
+harts = { path = "src/harts" }
+machine = { path = "src/machine" }
+memory = { path = "src/memory" }
+testing = { path = "src/testing" }
 rounding_mode = { git = "https://github.com/AntonioDrumond/rust-rounding-mode", rev = "b4bfeafe1dcfcaf527b7faa48b31070f6a414822" }
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
 serde_yaml = "0.9.34"
-
-[[bin]]
-name = "narvi"
-path = "src/main.rs"
