@@ -4,7 +4,7 @@ members = [
     "src/harts",
     "src/memory",
     "src/machine",
-    "src/testing",
+    "src/tests",
 ]
 resolver = "3"
 
@@ -24,7 +24,7 @@ event-system = { path = "src/event-system" }
 harts = { path = "src/harts" }
 machine = { path = "src/machine" }
 memory = { path = "src/memory" }
-testing = { path = "src/testing" }
+tests = { path = "src/tests" }
 rounding_mode = { git = "https://github.com/AntonioDrumond/rust-rounding-mode", rev = "b4bfeafe1dcfcaf527b7faa48b31070f6a414822" }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_yaml = "0.9.34"

@@ -1,5 +1,5 @@
 [package]
-name = "testing"
+name = "tests"
 version.workspace = true
 license-file.workspace = true
 authors.workspace = true
