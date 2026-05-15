@@ -25,24 +25,24 @@ impl Ram {
         Ok(byte0 | (byte1 << 8))
     }
 
-    pub fn read_32(&self, addr: usize) -> Result<u16, RamError> {
-        let byte0 = (self.read_8(addr)?) as u16;
-        let byte1 = (self.read_8(addr + 1)?) as u16;
-        let byte2 = (self.read_8(addr + 2)?) as u16;
-        let byte3 = (self.read_8(addr + 3)?) as u16;
+    pub fn read_32(&self, addr: usize) -> Result<u32, RamError> {
+        let byte0 = (self.read_8(addr)?) as u32;
+        let byte1 = (self.read_8(addr + 1)?) as u32;
+        let byte2 = (self.read_8(addr + 2)?) as u32;
+        let byte3 = (self.read_8(addr + 3)?) as u32;
         
         Ok(byte0 | (byte1 << 8) | (byte2 << 16) | (byte3 << 24))
     }
 
-    pub fn read_64(&self, addr: usize) -> Result<u16, RamError> {
-        let byte0 = (self.read_8(addr)?) as u16;
-        let byte1 = (self.read_8(addr + 1)?) as u16;
-        let byte2 = (self.read_8(addr + 2)?) as u16;
-        let byte3 = (self.read_8(addr + 3)?) as u16;
-        let byte4 = (self.read_8(addr + 4)?) as u16;
-        let byte5 = (self.read_8(addr + 5)?) as u16;
-        let byte6 = (self.read_8(addr + 6)?) as u16;
-        let byte7 = (self.read_8(addr + 7)?) as u16;
+    pub fn read_64(&self, addr: usize) -> Result<u64, RamError> {
+        let byte0 = (self.read_8(addr)?) as u64;
+        let byte1 = (self.read_8(addr + 1)?) as u64;
+        let byte2 = (self.read_8(addr + 2)?) as u64;
+        let byte3 = (self.read_8(addr + 3)?) as u64;
+        let byte4 = (self.read_8(addr + 4)?) as u64;
+        let byte5 = (self.read_8(addr + 5)?) as u64;
+        let byte6 = (self.read_8(addr + 6)?) as u64;
+        let byte7 = (self.read_8(addr + 7)?) as u64;
         
         Ok(byte0 | (byte1 << 8) | (byte2 << 16) | (byte3 << 24)
             | (byte4 << 32) | (byte5 << 40) | (byte6 << 48) | (byte7 << 56))

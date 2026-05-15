@@ -96,4 +96,13 @@ impl Machine {
             })
         }
     }
+
+    /// Starts the simulation loop
+    pub fn start(&self) -> Result<(), HartError> {
+        // TODO: temporary machine loop
+        loop {
+            // Considering only one hart for now            
+            self.installed_harts[0].update()?
+        }
+    }
 }

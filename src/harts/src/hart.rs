@@ -291,10 +291,25 @@ impl Hart {
         }
     }
 
-    fn execute(&mut self, inst: u32) {
-        if self.execute_rv64i(inst).is_ok() { return; }
-        if self.extensions.m { todo!("m extension") }
-        if self.extensions.a { todo!("a extension") }
-        if self.extensions.f { todo!("f extension") }
+    /// Simulates full pipeline execution for one instruction
+    pub fn update(&self) -> Result<(), HartError> {
+        todo!("fetch from ram");
+
+        let inst: u32 = 0;
+        let mut result = self.execute_rv64i(inst);
+
+        if matches!(result, Err(HartError::InstructionNotFound)) && self.extensions.m {
+            result = self.execute_m(inst);
+        }
+
+        if matches!(result, Err(HartError::InstructionNotFound)) && self.extensions.f {
+            result = self.execute_f(inst);
+        }
+
+        if matches!(result, Err(HartError::InstructionNotFound)) && self.extensions.d {
+            result = self.execute_d(inst);
+        }
+
+        result
     }
 }
