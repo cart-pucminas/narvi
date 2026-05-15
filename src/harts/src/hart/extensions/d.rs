@@ -7,7 +7,7 @@ use crate::util::{
 
 #[allow(dead_code, unused_variables)]
 impl Hart {
-    pub(super) fn execute_d(&mut self, inst: u32) -> Result<(), HartError> {
+    pub fn execute_d(&mut self, inst: u32) -> Result<(), HartError> {
         let opcode = get_bits(6, 0, inst);
         let funct3 = get_bits(14, 12, inst);
         let funct5 = get_bits(24, 20, inst);

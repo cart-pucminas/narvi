@@ -1,4 +1,4 @@
-use harts::hart::{extensions::Extensions, Hart};
+use harts::hart::{Extensions, Hart, HartError};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Eq)]
@@ -62,7 +62,9 @@ impl MachineConfig {
 
 #[derive(Debug)]
 pub struct Machine {
-    harts: Vec<Hart>,
+    // TODO: had to rename because there is a crate with the same name 
+    // harts: Vec<Hart>,
+    installed_harts: Vec<Hart>,
     l1: (),
     l2: (),
     l3: (),
@@ -74,7 +76,6 @@ pub struct Machine {
 }
 
 impl Machine {
-
     pub fn new(config: &MachineConfig) -> Result<Self, MachineError>{
         if !config.is_valid() {
             Err(MachineError::InvalidConfig)
@@ -84,9 +85,9 @@ impl Machine {
             let l3 = ();
             let l4 = ();
             // let harts = vec![Hart::from_extensions(&config.extensions, 0xFFFF); config.hart_count as usize];
-            let harts: Vec<Hart> = Vec::new(); 
+            let installed_harts: Vec<Hart> = Vec::new(); 
             Ok(Self{
-                harts,
+                installed_harts,
                 l1, l2, l3, l4,
                 l1_share: config.l1_share, 
                 l2_share: config.l2_share, 
@@ -95,5 +96,4 @@ impl Machine {
             })
         }
     }
-
 }

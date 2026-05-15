@@ -1,16 +1,11 @@
-pub mod extensions;
+mod extensions;
 mod rv64i;
-
-use extensions::{
-    Extensions,
-};
 
 use memory::CacheL1;
 
 use serde::{Serialize, Deserialize};
 
-// use serde::ser::{Serialize, Serializer, SerializeStruct};
-// use serde::de::{self, Deserialize, Deserializer, Visitor, SeqAccess, MapAccess};
+pub use extensions::Extensions;
 
 #[allow(dead_code, unused_variables, non_camel_case_types)]
 #[derive(Debug)]
@@ -148,7 +143,7 @@ impl Hart {
         }
     }
 
-    pub fn get_fp_reg_32_bits(&self, x:u8) -> Result<u32, HartError> {
+    pub(super) fn get_fp_reg_32_bits(&self, x:u8) -> Result<u32, HartError> {
         if x > 31 {
             Err(HartError::RegisterNotFound)
         }
@@ -177,7 +172,7 @@ impl Hart {
         }
     }
 
-    pub fn set_fp_reg_32_bits(&mut self, x:u8, value:u32) -> Result<(), HartError> {
+    pub(super) fn set_fp_reg_32_bits(&mut self, x:u8, value:u32) -> Result<(), HartError> {
         if x > 31 {
             Err(HartError::RegisterNotFound)
         }
@@ -202,7 +197,7 @@ impl Hart {
         }
     }
 
-    pub fn get_fp_reg_32(&self, x:u8) -> Result<f32, HartError> {
+    pub(super) fn get_fp_reg_32(&self, x:u8) -> Result<f32, HartError> {
         if x > 31 {
             Err(HartError::RegisterNotFound)
         }
@@ -231,7 +226,7 @@ impl Hart {
         }
     }
 
-    pub fn get_fp_reg_64(&self, x:u8) -> Result<f64, HartError> {
+    pub(super) fn get_fp_reg_64(&self, x:u8) -> Result<f64, HartError> {
         if x > 31 {
             Err(HartError::RegisterNotFound)
         }
@@ -250,7 +245,7 @@ impl Hart {
         }
     }
 
-    pub fn set_fp_reg_32(&mut self, x:u8, value: f32) -> Result<(), HartError> {
+    pub(super) fn set_fp_reg_32(&mut self, x:u8, value: f32) -> Result<(), HartError> {
         if x > 31 {
             Err(HartError::RegisterNotFound)
         }
@@ -275,7 +270,7 @@ impl Hart {
         }
     }
 
-    pub fn set_fp_reg_64(&mut self, x:u8, value: f64) -> Result<(), HartError> {
+    pub(super) fn set_fp_reg_64(&mut self, x:u8, value: f64) -> Result<(), HartError> {
         if x > 31 {
             Err(HartError::RegisterNotFound)
         }
