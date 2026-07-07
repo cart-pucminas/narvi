@@ -1,3 +1,6 @@
+use memory::*;
+
 fn main() {
-    println!("narvi-test: workspace test harness");
+    let l1 = CacheLevel::new(64, 8, 64);
+    println!("{l1:?}");
 }
