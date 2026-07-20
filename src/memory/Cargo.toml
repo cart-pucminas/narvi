@@ -7,4 +7,5 @@ edition.workspace = true
 homepage.workspace = true
 
 [dependencies]
+rand = "0.10.2"
 serde.workspace = true
