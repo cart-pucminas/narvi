@@ -13,6 +13,15 @@ pub enum CacheReturn {
     Error
 }
 
+impl From<CacheReturn> for Vec<u8> {
+    fn from(ret: CacheReturn) -> Self {
+        return match ret {
+            CacheReturn::Hit(value) => value,
+            _ => vec![]
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct CacheLine {
     pub bytes: Vec<u8>
@@ -116,20 +125,21 @@ impl CacheLevel {
     }
 
     // General insertion method
-    pub fn insert(&mut self, addr: usize, data: Vec<u8>) -> bool {
+    pub fn insert(&mut self, addr: usize, data: Vec<u8>, set_dirty: bool) -> bool {
         let tmp = (addr & self.index_mask) >> self.index_start;
         let idx = (tmp % self.n_sets) * self.way;
-        let tag = addr & self.tag_mask;
-        let offset = addr & self.offset_mask;
 
         // Should be changed to LRU in the future
         let i = random_range(0..self.way);
 
         match self.data.get(idx + i) {
             Some(_) => {
-                self.data[idx + i].update(data, offset);
+                self.data[idx + i].update(data, addr & self.offset_mask);
                 self.valid[idx + i] = true;
-                self.tags[idx + i] = tag;
+                self.tags[idx + i] = (addr & self.tag_mask) >> self.tag_start;
+                if set_dirty {
+                    self.dirty[idx + i] = true;
+                }
                 return true
             },
             _ => ()
@@ -137,29 +147,19 @@ impl CacheLevel {
         false
     }
 
-    // Insertion method for the CPU (enables dirty bit)
-    pub fn update(&mut self, addr: usize, data: Vec<u8>) -> bool {
-        return if self.insert(addr, data) {
-            let idx = (addr & self.index_mask) % self.data.len();
-            self.dirty[idx] = true;
-            true
-
-        } else {
-            false
-        }
-    }
-
     // Returns the bytes in this cache level
     pub fn read_level(&self, addr: usize, bytes: usize) -> CacheReturn {
-        let idx = (addr & self.index_mask) % self.n_sets;
-        let tag = addr & self.tag_mask;
-        let offset = addr & self.offset_mask;
+        let tmp = (addr & self.index_mask) >> self.index_start;
+        let idx = (tmp % self.n_sets) * self.way;
+
+        let tag = (addr & self.tag_mask) >> self.tag_start;
         
         for i in 0..self.way {
             match (self.valid.get(idx + i), self.tags.get(idx + i)) {
                 (Some(&true), Some(&value)) => {
                     if value == tag {
-                        let block = self.data[idx].clone();
+                        let offset = addr & self.offset_mask;
+                        let block = self.data[idx + i].clone();
                         let slice = &block.bytes[offset..bytes];
                         return CacheReturn::Hit(slice.to_vec());
                     }
