@@ -7,6 +7,14 @@ macro_rules! mask_from {
     };
 }
 
+#[derive(Debug, Deserialize)]
+pub enum CachePolicy {
+    LRU,
+    LFU,
+    FIFO,
+    Random,
+}
+
 pub enum CacheReturn {
     Hit(Vec<u8>),
     Miss,
@@ -43,16 +51,25 @@ struct CacheConfig {
     n_blocks: usize,
     block_size: usize,
     set_size: usize,
+    policy: CachePolicy
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(from = "CacheConfig")]
 pub struct CacheLevel{
 
+    policy: CachePolicy,
+
+    #[serde(skip)]
     offset_mask: usize,
+    #[serde(skip)]
     index_mask: usize,
+    #[serde(skip)]
     tag_mask: usize,
+
+    #[serde(skip)]
     index_start: usize,
+    #[serde(skip)]
     tag_start: usize,
 
     #[serde(skip)]
@@ -82,6 +99,7 @@ impl From<CacheConfig> for CacheLevel {
         let tag_mask = (offset_mask | index_mask) ^ usize::MAX; // remaining bits
 
         CacheLevel {
+            policy: config.policy,
             index_mask, 
             tag_mask, 
             offset_mask,
@@ -98,7 +116,7 @@ impl From<CacheConfig> for CacheLevel {
 }
 
 impl CacheLevel {
-    pub fn new(block_size: usize, associativity: usize, n_sets: usize) -> Self {
+    pub fn new(block_size: usize, associativity: usize, n_sets: usize, policy: CachePolicy) -> Self {
         let n_blocks = n_sets * associativity;
 
         let offset_size = block_size.ilog2() as usize;          // byte offset
@@ -110,6 +128,7 @@ impl CacheLevel {
         let tag_mask = (offset_mask | index_mask) ^ usize::MAX; // remaining bits
 
         CacheLevel {
+            policy,
             index_mask,
             tag_mask,
             offset_mask,
@@ -129,8 +148,12 @@ impl CacheLevel {
         let tmp = (addr & self.index_mask) >> self.index_start;
         let idx = (tmp % self.n_sets) * self.way;
 
-        // Should be changed to LRU in the future
-        let i = random_range(0..self.way);
+        let i = match self.policy {
+            CachePolicy::LRU => 0,
+            CachePolicy::LFU => 0,
+            CachePolicy::FIFO => 0,
+            CachePolicy::Random => random_range(0..self.way)
+        };
 
         match self.data.get(idx + i) {
             Some(_) => {
@@ -142,7 +165,7 @@ impl CacheLevel {
                 }
                 return true
             },
-            _ => ()
+            _ => eprintln!("Insertion failed! Could not index position: {}", idx + i)
         }
         false
     }
