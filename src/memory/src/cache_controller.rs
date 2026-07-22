@@ -18,13 +18,17 @@ pub enum CachePolicy {
 pub enum CacheReturn {
     Hit(Vec<u8>),
     Miss,
-    Error
+    Error(&'static str)
 }
 
 impl From<CacheReturn> for Vec<u8> {
     fn from(ret: CacheReturn) -> Self {
         return match ret {
             CacheReturn::Hit(value) => value,
+            CacheReturn::Error(err) => {
+                println!("{}", err);
+                vec![]
+            },
             _ => vec![]
         }
     }
@@ -36,7 +40,7 @@ pub struct CacheLine {
 }
 
 impl CacheLine {
-    fn new(block_size: usize) -> Self {
+    pub fn new(block_size: usize) -> Self {
         CacheLine { bytes: vec![0; block_size] }
     }
 
@@ -144,6 +148,7 @@ impl CacheSet {
                         0
                     }
                 };
+                println!("old for {idx}: {old_idx}");
                 self.policy_list.remove(old_idx);
                 self.policy_list.insert(0, idx);
             },
@@ -204,6 +209,8 @@ pub struct CacheLevel{
     way: usize,
     #[serde(skip)]
     n_sets: usize,
+    
+    block_size: usize,
 }
 
 impl From<CacheConfig> for CacheLevel {
@@ -231,7 +238,8 @@ impl From<CacheConfig> for CacheLevel {
             valid: vec![false ; config.n_blocks], 
             dirty: vec![false ; config.n_blocks], 
             way: config.set_size,
-            n_sets
+            n_sets,
+            block_size: config.block_size
         }
     }
 }
@@ -261,12 +269,13 @@ impl CacheLevel {
             valid: vec![false ; n_blocks], 
             dirty: vec![false ; n_blocks], 
             way: associativity,
-            n_sets
+            n_sets,
+            block_size
         }
     }
 
     // General insertion method
-    pub fn insert(&mut self, addr: usize, data: Vec<u8>, set_dirty: bool) -> bool {
+    fn insert(&mut self, addr: usize, data: Vec<u8>, set_dirty: bool) -> bool {
         let tmp = (addr & self.index_mask) >> self.index_start;
         let idx = tmp % self.n_sets;
         println!("idx for {:?} is: {}", data, idx);
@@ -289,11 +298,22 @@ impl CacheLevel {
         }
     }
 
+    pub fn new_block(&mut self, addr: usize, data: Vec<u8>) -> bool {
+        self.insert(addr, data, false)
+    }
+
+    pub fn update_block(&mut self, addr: usize, data: Vec<u8>) -> bool {
+        self.insert(addr, data, true)
+    }
+
     // Returns the bytes in this cache level
-    pub fn read_level(&mut self, addr: usize, bytes: usize) -> CacheReturn {
+    pub fn read(&mut self, addr: usize, bytes: usize) -> CacheReturn {
+        if bytes > self.block_size {
+            return CacheReturn::Error("The amount of bytes requested exceeds the block size");
+        }
+
         let tmp = (addr & self.index_mask) >> self.index_start;
         let idx = tmp % self.n_sets;
-
         let tag = (addr & self.tag_mask) >> self.tag_start;
         
         for i in 0..self.way {
@@ -303,9 +323,12 @@ impl CacheLevel {
                     let block = self.sets[idx].data[i].clone();
                     let slice = &block.bytes[offset..bytes];
 
+                    println!("i : {}", i);
+                    self.sets[idx].policy_update(i, false);
+
                     return CacheReturn::Hit(slice.to_vec());
                 },
-                (None, _) | (_, None) => return CacheReturn::Error,
+                (None, _) | (_, None) => return CacheReturn::Error("Index out of bounds"),
                 _ => (),
             }
         }
