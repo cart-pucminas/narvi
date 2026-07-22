@@ -1,0 +1,93 @@
+
+=> set 0
+Line: [0, 0, 0, 0]
+Line: [0, 0, 0, 0]
+policy list: [1, 0]
+
+=> set 1
+Line: [0, 0, 0, 0]
+Line: [0, 0, 0, 0]
+policy list: [1, 0]
+
+=> set 2
+Line: [0, 0, 0, 0]
+Line: [0, 0, 0, 0]
+policy list: [1, 0]
+
+=> set 3
+Line: [0, 0, 0, 0]
+Line: [0, 0, 0, 0]
+policy list: [1, 0]
+==============
+idx for [25] is: 0
+offset is: 0
+sub: 0
+
+=> set 0
+Line: [25, 0, 0, 0]
+Line: [0, 0, 0, 0]
+policy list: [0, 1]
+
+=> set 1
+Line: [0, 0, 0, 0]
+Line: [0, 0, 0, 0]
+policy list: [1, 0]
+
+=> set 2
+Line: [0, 0, 0, 0]
+Line: [0, 0, 0, 0]
+policy list: [1, 0]
+
+=> set 3
+Line: [0, 0, 0, 0]
+Line: [0, 0, 0, 0]
+policy list: [1, 0]
+==============
+idx for [35] is: 0
+offset is: 1
+sub: 1
+
+=> set 0
+Line: [25, 0, 0, 0]
+Line: [0, 35, 0, 0]
+policy list: [1, 0]
+
+=> set 1
+Line: [0, 0, 0, 0]
+Line: [0, 0, 0, 0]
+policy list: [1, 0]
+
+=> set 2
+Line: [0, 0, 0, 0]
+Line: [0, 0, 0, 0]
+policy list: [1, 0]
+
+=> set 3
+Line: [0, 0, 0, 0]
+Line: [0, 0, 0, 0]
+policy list: [1, 0]
+==============
+idx for [55] is: 0
+offset is: 2
+sub: 0
+
+=> set 0
+Line: [25, 0, 55, 0]
+Line: [0, 35, 0, 0]
+policy list: [0, 1]
+
+=> set 1
+Line: [0, 0, 0, 0]
+Line: [0, 0, 0, 0]
+policy list: [1, 0]
+
+=> set 2
+Line: [0, 0, 0, 0]
+Line: [0, 0, 0, 0]
+policy list: [1, 0]
+
+=> set 3
+Line: [0, 0, 0, 0]
+Line: [0, 0, 0, 0]
+policy list: [1, 0]
+x: [25, 0, 55, 0]

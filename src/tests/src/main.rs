@@ -2,17 +2,20 @@ use memory::*;
 
 fn main() {
 
-    let mut l1 = CacheLevel::new(64, 2, 64, CachePolicy::Random);
+    let mut l1 = CacheLevel::new(4, 2, 4, CachePolicy::LRU);
+    l1.print();
+    println!("==============");
+
     l1.insert(0, vec![25], false);
-    l1.insert(63, vec![35], false);
-    l1.insert(64, vec![55], false);
+    l1.print();
+    println!("==============");
+    l1.insert(1, vec![35], false);
+    l1.print();
+    println!("==============");
+    l1.insert(2, vec![55], false);
 
-    let x = match l1.read_level(0, 4) {
-        CacheReturn::Hit(value) => value,
-        _ => vec![]
-    };
+    let x : Vec<u8> = l1.read_level(0, 4).into();
 
-    println!("{:?}", x);
-    println!("{:?}", l1.data[0]);
-    println!("{:?}", l1);
+    l1.print();
+    println!("x: {:?}", x);
 }
