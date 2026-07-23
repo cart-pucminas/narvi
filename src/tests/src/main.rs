@@ -10,7 +10,5 @@ fn main() {
 
     l1.print();
     let x : Vec<u8> = l1.read(0, 4).into();
-
-    l1.print();
     println!("x: {:?}", x);
 }
