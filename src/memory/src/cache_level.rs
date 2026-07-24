@@ -1,37 +1,16 @@
 use serde::{Deserialize};
 use rand::{random_range};
 
+use crate::cache_config::{
+    CacheConfig,
+    CachePolicy,
+    CacheReturn
+};
+
 macro_rules! mask_from {
     ($size:expr, $offset:expr) => {
         ((1 << $size) - 1) << $offset  
     };
-}
-
-#[derive(Debug, Clone, Copy, Deserialize)]
-pub enum CachePolicy {
-    LRU,
-    LFU,
-    FIFO,
-    Random,
-}
-
-pub enum CacheReturn {
-    Hit(Vec<u8>),
-    Miss,
-    Error(&'static str)
-}
-
-impl From<CacheReturn> for Vec<u8> {
-    fn from(ret: CacheReturn) -> Self {
-        return match ret {
-            CacheReturn::Hit(value) => value,
-            CacheReturn::Error(err) => {
-                println!("{}", err);
-                vec![]
-            },
-            _ => vec![]
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -171,14 +150,6 @@ impl CacheSet {
 }
 
 #[derive(Debug, Deserialize)]
-struct CacheConfig {
-    n_blocks: usize,
-    block_size: usize,
-    set_size: usize,
-    policy: CachePolicy
-}
-
-#[derive(Debug, Deserialize)]
 #[serde(from = "CacheConfig")]
 pub struct CacheLevel{
 
@@ -302,7 +273,7 @@ impl CacheLevel {
         self.insert(addr, data, true)
     }
 
-    // Returns the bytes in this cache level
+    // Returns a amount of bytes in this cache level
     pub fn read(&mut self, addr: usize, bytes: usize) -> CacheReturn {
         if bytes > self.block_size {
             return CacheReturn::Error("The amount of bytes requested exceeds the block size");
