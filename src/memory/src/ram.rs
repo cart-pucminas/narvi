@@ -3,6 +3,7 @@ pub enum RamError {
 }
 
 /// Simple byte-addressable little-endian RAM implementation
+#[derive(Debug, Default)]
 pub struct Ram(Vec<u8>);
 
 impl Ram {

@@ -2,13 +2,16 @@ use memory::*;
 
 fn main() {
 
-    let mut l1 = CacheLevel::new(4, 2, 4, CachePolicy::LRU);
+    let l1 = CacheLevel::new(4, 2, 4, CachePolicy::LRU);
+    let l2 = CacheLevel::new(4, 2, 4, CachePolicy::LRU);
+    
+    let mut ram = Ram::with_size(1024);
+    let _ = ram.write_32(0, 55);
 
-    l1.new_block(0, vec![25]);
-    l1.new_block(1, vec![35]);
-    l1.new_block(2, vec![55]);
+    let levels = vec![l1, l2];
+    let mut cache = CacheController::new(levels, ram);
 
-    l1.print();
-    let x : Vec<u8> = l1.read(0, 4).into();
-    println!("x: {:?}", x);
+    let _ = cache.read_32(0);
+
+    cache.print();
 }

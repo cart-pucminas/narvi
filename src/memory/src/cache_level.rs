@@ -2,6 +2,7 @@ use serde::{Deserialize};
 use rand::{random_range};
 
 use crate::cache_config::{
+    CacheError,
     CacheConfig,
     CachePolicy,
     CacheReturn
@@ -274,10 +275,7 @@ impl CacheLevel {
     }
 
     // Returns a amount of bytes in this cache level
-    pub fn read(&mut self, addr: usize, bytes: usize) -> CacheReturn {
-        if bytes > self.block_size {
-            return CacheReturn::Error("The amount of bytes requested exceeds the block size");
-        }
+    pub fn read(&mut self, addr: usize, bytes: usize) -> Result<CacheReturn, CacheError> {
 
         let tmp = (addr & self.index_mask) >> self.index_start;
         let idx = tmp % self.n_sets;
@@ -292,13 +290,13 @@ impl CacheLevel {
 
                     self.sets[idx].policy_update(i, false);
 
-                    return CacheReturn::Hit(slice.to_vec());
+                    return Ok(CacheReturn::Hit(slice.to_vec()));
                 },
-                (None, _) | (_, None) => return CacheReturn::Error("Index out of bounds"),
+                (None, _) | (_, None) => return Err(CacheError::OutOfBounds),
                 _ => (),
             }
         }
-        CacheReturn::Miss
+        Ok(CacheReturn::Miss)
     }
 
     pub fn print(&self) {

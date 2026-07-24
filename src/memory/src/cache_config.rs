@@ -8,25 +8,25 @@ pub enum CachePolicy {
     Random,
 }
 
+#[derive(Debug, Clone)]
+pub enum CacheError {
+    OutOfBounds,
+}
+
+#[derive(Debug, Clone)]
 pub enum CacheReturn {
     Hit(Vec<u8>),
     Miss,
-    Error(&'static str)
 }
 
 impl From<CacheReturn> for Vec<u8> {
-    fn from(ret: CacheReturn) -> Self {
+    fn from (ret: CacheReturn) -> Self {
         return match ret {
             CacheReturn::Hit(value) => value,
-            CacheReturn::Error(err) => {
-                println!("{}", err);
-                vec![]
-            },
-            _ => vec![]
+            CacheReturn::Miss => vec![]
         }
     }
 }
-
 
 #[derive(Debug, Deserialize)]
 pub struct CacheConfig {
