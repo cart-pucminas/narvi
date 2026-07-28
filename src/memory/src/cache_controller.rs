@@ -8,6 +8,7 @@ use crate::{
     cache_level::CacheLevel
 };
 
+#[derive(Debug)]
 pub enum MemError {
     Ram(RamError),
     Cache(CacheError),
@@ -53,6 +54,30 @@ impl CacheController {
         }
     }
 
+    fn bring_upwards (&mut self,
+            addr: usize,
+            data: Vec<u8>,
+            bytes: usize,
+            mut level: usize,
+            read_ram: bool
+        ) -> Result<(), MemError> {
+
+        let mut res: Vec<u8> = data;
+
+        if read_ram {
+            match self.read_bytes_ram(addr, bytes) {
+                Ok(val) => res = val,
+                Err(err) => return Err(err)
+            }
+        }
+
+        while level > 0 {
+            level -= 1;
+            self.cache_levels[level as usize].new_block(addr, res.clone());
+        }
+        Ok(())
+    }
+
     fn find (&mut self, addr: usize) -> Result<(bool, usize), MemError> {
 
         let n = self.cache_levels.len();
@@ -75,7 +100,7 @@ impl CacheController {
         let mut res = vec![];
 
         let hit;
-        let mut level;
+        let level;
 
         match self.find(addr) {
             Ok(tuple) => {
@@ -95,18 +120,9 @@ impl CacheController {
 
         // Update upper levels
         if level != 0 {
-
-            // Read from RAM
-            if !hit {
-                match self.read_bytes_ram(addr, bytes) {
-                    Ok(val) => res = val,
-                    Err(err) => return Err(err)
-                }
-            }
-
-            while level > 0 {
-                level -= 1;
-                self.cache_levels[level as usize].new_block(addr, res.clone());
+            match self.bring_upwards(addr, res, bytes, level, !hit) {
+                Ok(_) => (),
+                Err(err) => return Err(err)
             }
 
             // Read first level again
@@ -125,6 +141,7 @@ impl CacheController {
         
         // In first layer cache
         if let Ok(true) = self.cache_levels[0].find(addr) {
+            
         } else if let Ok(x) = self.find(addr) {     // Bring to first layer
             
         }
