@@ -12,6 +12,7 @@ pub enum MemError {
     Ram(RamError),
     Cache(CacheError),
     UnreachableState,
+    UpdateFailed,
 }
 
 #[derive(Debug, Deserialize)]
@@ -58,25 +59,25 @@ impl CacheController {
 
         let n = self.cache_levels.len();
 
-        let mut i: i32 = 0;
+        let mut misses: i32 = 0;
         let mut hit = false;
 
-        while !hit && (i as usize) < n {
+        while !hit && (misses as usize) < n {
 
             // Search levels
-            match self.cache_levels[i as usize].read(addr, bytes) {
+            match self.cache_levels[misses as usize].read(addr, bytes) {
                 Ok(ret) => match ret {
                     CacheReturn::Hit(val) => {
                         res = val;
                         hit = true;
                     },
-                    CacheReturn::Miss => i += 1
+                    CacheReturn::Miss => misses += 1
                 }
                 Err(err) => return Err(MemError::Cache(err))
             };
         }
 
-        if i != 0 {
+        if misses != 0 {
             // Update upper levels
             if !hit {
                 match self.read_bytes_ram(addr, bytes) {
@@ -85,15 +86,38 @@ impl CacheController {
                 }
             }
 
-            while i > 0 {
-                i -= 1;
-                self.cache_levels[i as usize].new_block(addr, res.clone());
+            while misses > 0 {
+                misses -= 1;
+                self.cache_levels[misses as usize].new_block(addr, res.clone());
             }
 
-            // Read cache again
-            return self.read(addr, bytes);
+            // Read first level again
+            match self.cache_levels[0].read(addr, bytes) {
+                Ok(ret) => match ret {
+                    CacheReturn::Hit(val) => return Ok(val),
+                    _ => return Err(MemError::UpdateFailed)
+                }
+                Err(err) => return Err(MemError::Cache(err))
+            };
         }
         Ok(res)
+    }
+
+    fn write (&mut self, addr: usize, data: Vec<u8>) -> Result<(), MemError> {
+        
+        // In first layer cache
+        if let Ok(ret) = self.cache_levels[0].read(addr, data.len()) {
+            match ret {
+                CacheReturn::Hit(val) => {
+
+                },
+                _ => ()
+            }
+        } else if let Ok(x) = self.read(addr, data.len()) {     // Bring to first layer
+            
+        }
+
+        Ok(())
     }
 
     pub fn read_8 (&mut self, addr: usize) -> Result<u8, MemError> {
