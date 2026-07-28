@@ -53,32 +53,50 @@ impl CacheController {
         }
     }
 
+    fn find (&mut self, addr: usize) -> Result<(bool, usize), MemError> {
+
+        let n = self.cache_levels.len();
+        let mut level: i32 = 0;
+        let mut hit = false;
+
+        // Search levels
+        while !hit && (level as usize) < n {
+            if let Ok(true) = self.cache_levels[level as usize].find(addr) {
+                hit = true;
+            } else {
+                level += 1;
+            }
+        }
+        Ok((hit, level as usize))
+    }
+
     fn read (&mut self, addr: usize, bytes: usize) -> Result<Vec<u8>, MemError> {
 
         let mut res = vec![];
 
-        let n = self.cache_levels.len();
+        let hit;
+        let mut level;
 
-        let mut misses: i32 = 0;
-        let mut hit = false;
-
-        while !hit && (misses as usize) < n {
-
-            // Search levels
-            match self.cache_levels[misses as usize].read(addr, bytes) {
-                Ok(ret) => match ret {
-                    CacheReturn::Hit(val) => {
-                        res = val;
-                        hit = true;
-                    },
-                    CacheReturn::Miss => misses += 1
+        match self.find(addr) {
+            Ok(tuple) => {
+                (hit, level) = tuple;
+                if hit {
+                    res = match self.cache_levels[level as usize].read(addr, bytes) {
+                        Ok(ret) => match ret {
+                            CacheReturn::Hit(val) => val,
+                            CacheReturn::Miss => return Err(MemError::UnreachableState)
+                        },
+                        Err(err) => return Err(MemError::Cache(err))
+                    };
                 }
-                Err(err) => return Err(MemError::Cache(err))
-            };
-        }
+            }
+            Err(err) => return Err(err)
+        };
 
-        if misses != 0 {
-            // Update upper levels
+        // Update upper levels
+        if level != 0 {
+
+            // Read from RAM
             if !hit {
                 match self.read_bytes_ram(addr, bytes) {
                     Ok(val) => res = val,
@@ -86,9 +104,9 @@ impl CacheController {
                 }
             }
 
-            while misses > 0 {
-                misses -= 1;
-                self.cache_levels[misses as usize].new_block(addr, res.clone());
+            while level > 0 {
+                level -= 1;
+                self.cache_levels[level as usize].new_block(addr, res.clone());
             }
 
             // Read first level again
@@ -106,14 +124,8 @@ impl CacheController {
     fn write (&mut self, addr: usize, data: Vec<u8>) -> Result<(), MemError> {
         
         // In first layer cache
-        if let Ok(ret) = self.cache_levels[0].read(addr, data.len()) {
-            match ret {
-                CacheReturn::Hit(val) => {
-
-                },
-                _ => ()
-            }
-        } else if let Ok(x) = self.read(addr, data.len()) {     // Bring to first layer
+        if let Ok(true) = self.cache_levels[0].find(addr) {
+        } else if let Ok(x) = self.find(addr) {     // Bring to first layer
             
         }
 

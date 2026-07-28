@@ -299,6 +299,25 @@ impl CacheLevel {
         Ok(CacheReturn::Miss)
     }
 
+    pub fn find(&mut self, addr: usize) -> Result<bool, CacheError> {
+
+        let tmp = (addr & self.index_mask) >> self.index_start;
+        let idx = tmp % self.n_sets;
+        let tag = (addr & self.tag_mask) >> self.tag_start;
+        
+        for i in 0..self.way {
+            match (self.valid.get(idx + i), self.tags.get(idx + i)) {
+                (Some(&true), Some(&value)) if value == tag => {
+                    self.sets[idx].policy_update(i, false);
+                    return Ok(true)
+                },
+                (None, _) | (_, None) => return Err(CacheError::OutOfBounds),
+                _ => (),
+            }
+        }
+        Ok(false)
+    }
+
     pub fn print(&self) {
         let mut i = 0;
         for set in &self.sets {
