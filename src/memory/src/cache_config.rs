@@ -11,6 +11,8 @@ pub enum CachePolicy {
 #[derive(Debug, Clone)]
 pub enum CacheError {
     OutOfBounds,
+    PolicyFailed,
+    UnreachableState,
 }
 
 #[derive(Debug, Clone)]

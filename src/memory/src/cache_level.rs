@@ -2,10 +2,7 @@ use serde::{Deserialize};
 use rand::{random_range};
 
 use crate::cache_config::{
-    CacheError,
-    CacheConfig,
-    CachePolicy,
-    CacheReturn
+    CacheConfig, CacheError, CachePolicy, CacheReturn
 };
 
 macro_rules! mask_from {
@@ -63,27 +60,41 @@ impl CacheSet {
         }
     }
     
-    pub fn insert(&mut self, data: Vec<u8>, offset: usize) -> usize {
-        let sub = self.policy_next();
-        self.data[sub].update(data, offset);
-        self.policy_update(sub, true);
-        sub
+    pub fn insert(&mut self, data: Vec<u8>) -> Result<usize, CacheError> {
+
+        let sub = match self.policy_next() { 
+            Ok(val) => val,
+            Err(err) => {
+                eprintln!("Finding next in the policy has failed. Defaulting to 0");
+                eprintln!("{:?}", err);
+                0
+            }
+        };
+
+        self.data[sub].update(data, 0);
+
+        match self.policy_update(sub, true) {
+            Ok(_) => Ok(sub),
+            Err(err) => Err(err)
+        }
     }
 
-    pub fn update(&mut self, idx: usize, data: Vec<u8>, offset: usize) {
-        self.data[idx].update(data, offset);
-        self.policy_update(idx, false);
+    pub fn update(&mut self, data: Vec<u8>, offset: usize, set: usize) -> Result<usize, CacheError> {
+
+        self.data[set].update(data, offset);
+        match self.policy_update(set, false) {
+            Ok(_) => Ok(set),
+            Err(err) => Err(err)
+        }
     }
 
-    fn policy_next(&mut self) -> usize {
+    fn policy_next(&mut self) -> Result<usize, CacheError> {
         match self.policy {
             CachePolicy::LRU => { 
                 match self.policy_list.last() {
-                    Some(&res) => res,
+                    Some(&res) => Ok(res),
                     None => {
-                        eprintln!("Finding next position from the policy list has failed. 
-                            Defaulting to 0");
-                        0
+                        Err(CacheError::PolicyFailed)
                     }
                 }
             },
@@ -93,52 +104,50 @@ impl CacheSet {
                           .enumerate()
                           .min_by_key( |(_, val)| *val)
                           .map( |(index, _)| index) {
-                    Some(min_idx) => min_idx,
+                    Some(min_idx) => Ok(min_idx),
                     None => {
-                        eprintln!("Finding next position from the policy list has failed. 
-                            Defaulting to 0");
-                        0
+                        Err(CacheError::PolicyFailed)
                     }
                 }
             },
             CachePolicy::FIFO => {
                 match self.policy_list.pop() {
-                    Some(res) => res,
+                    Some(res) => Ok(res),
                     None => {
                         if self.policy_list.len() != 0 {
-                            eprintln!("Finding next position from the policy list has failed. 
-                                Defaulting to 0");
+                            Err(CacheError::PolicyFailed)
+                        } else {
+                            Ok(0)
                         }
-                        0
                     }
                 }
             },
-            CachePolicy::Random => random_range(0..self.way)
+            CachePolicy::Random => Ok(random_range(0..self.way))
         }
     }
 
-    fn policy_update(&mut self, idx: usize, new_insertion: bool) {
+    fn policy_update(&mut self, idx: usize, insertion: bool) -> Result<(), CacheError> {
         match self.policy {
             CachePolicy::LRU => { 
                 let old_idx = match self.policy_list.iter().position(|x| *x == idx) {
                     Some(idx) => idx,
-                    None => {
-                        eprintln!("Policy update failed! Could not find element {}", idx);
-                        0
-                    }
+                    None => return Err(CacheError::PolicyFailed)
                 };
                 self.policy_list.remove(old_idx);
                 self.policy_list.insert(0, idx);
+                Ok(())
             },
             CachePolicy::LFU => {
                 self.policy_list[idx] += 1;
+                Ok(())
             },
             CachePolicy::FIFO => {
-                if new_insertion {
+                if insertion {
                     self.policy_list.insert(0, idx);
                 }
+                Ok(())
             },
-            CachePolicy::Random => (),
+            CachePolicy::Random => Ok(()),
         }
     }
 
@@ -167,7 +176,7 @@ pub struct CacheLevel{
     tag_start: usize,
 
     #[serde(skip)]
-    pub sets: Vec<CacheSet>,
+    sets: Vec<CacheSet>,
     #[serde(skip)]
     tags: Vec<usize>,
     #[serde(skip)]
@@ -245,33 +254,60 @@ impl CacheLevel {
     }
 
     // General insertion method
-    fn insert(&mut self, addr: usize, data: Vec<u8>, set_dirty: bool) -> bool {
+    pub fn insert(&mut self, addr: usize, data: Vec<u8>) -> Result<(), CacheError> {
         let tmp = (addr & self.index_mask) >> self.index_start;
         let idx = tmp % self.n_sets;
 
         match self.sets.get(idx) {
             Some(_) => {
                 let tag = (addr & self.tag_mask) >> self.tag_start;
-                let _ = self.sets[idx].insert(data, addr & self.offset_mask);
 
-                self.tags[idx] = tag;
-                self.dirty[idx] = set_dirty;
-                self.valid[idx] = true;
-                true
+                match self.sets[idx].insert(data) {
+                    Ok(_) => {
+                        self.tags[idx] = tag;
+                        self.dirty[idx] = false;
+                        self.valid[idx] = true;
+                        Ok(())
+                    },
+                    Err(err) => Err(err)
+                }
             },
             _ => {
-                eprintln!("Insertion failed! Could not index the set at position: {}", idx);
-                false
+                Err(CacheError::OutOfBounds)
             }
         }
     }
 
-    pub fn new_block(&mut self, addr: usize, data: Vec<u8>) -> bool {
-        self.insert(addr, data, false)
-    }
+    pub fn update(&mut self, addr: usize, data: Vec<u8>) -> Result<(), CacheError> {
+        let tmp = (addr & self.index_mask) >> self.index_start;
+        let idx = tmp % self.n_sets;
 
-    pub fn update_block(&mut self, addr: usize, data: Vec<u8>) -> bool {
-        self.insert(addr, data, true)
+        match self.sets.get(idx) {
+            Some(_) => {
+                let tag = (addr & self.tag_mask) >> self.tag_start;
+                let offset = addr & self.offset_mask;
+
+                for i in 0..self.way {
+                    match (self.valid.get(idx + i), self.tags.get(idx + i)) {
+                        (Some(&true), Some(&value)) if value == tag => {
+                            return match self.sets[idx].update(data.clone(), offset, i) {
+                                Ok(_) => {
+                                    self.dirty[idx] = true;
+                                    Ok(())
+                                },
+                                Err(err) => Err(err)
+                            }
+                        },
+                        (None, _) | (_, None) => return Err(CacheError::OutOfBounds),
+                        _ => (),
+                    }
+                }
+                Err(CacheError::UnreachableState) // Updated always comes after a find
+            },
+            _ => {
+                Err(CacheError::OutOfBounds)
+            }
+        }
     }
 
     // Returns a amount of bytes in this cache level
@@ -288,15 +324,20 @@ impl CacheLevel {
                     let block = self.sets[idx].data[i].clone();
                     let slice = &block.bytes[offset..bytes];
 
-                    self.sets[idx].policy_update(i, false);
-
-                    return Ok(CacheReturn::Hit(slice.to_vec()));
+                    return match self.sets[idx].policy_update(i, false) {
+                        Ok(_) => Ok(CacheReturn::Hit(slice.to_vec())),
+                        Err(err) => Err(err)
+                    };
                 },
                 (None, _) | (_, None) => return Err(CacheError::OutOfBounds),
                 _ => (),
             }
         }
         Ok(CacheReturn::Miss)
+    }
+
+    pub fn get_block(&mut self, addr: usize) -> Result<CacheReturn, CacheError> {
+        self.read(addr, self.block_size)
     }
 
     pub fn find(&mut self, addr: usize) -> Result<bool, CacheError> {
@@ -308,8 +349,10 @@ impl CacheLevel {
         for i in 0..self.way {
             match (self.valid.get(idx + i), self.tags.get(idx + i)) {
                 (Some(&true), Some(&value)) if value == tag => {
-                    self.sets[idx].policy_update(i, false);
-                    return Ok(true)
+                    return match self.sets[idx].policy_update(i, false) {
+                        Ok(_) => Ok(true),
+                        Err(err) => Err(err)
+                    };
                 },
                 (None, _) | (_, None) => return Err(CacheError::OutOfBounds),
                 _ => (),
