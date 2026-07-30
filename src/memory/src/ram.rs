@@ -12,6 +12,14 @@ impl Ram {
         Ram(vec![0; size])
     }
 
+    pub fn read_bytes(&self, addr: usize, bytes: usize) -> Result<Vec<u8>, RamError> {
+        if let Some(v) = self.0.get(addr..addr+bytes) {
+            return Ok(v.to_vec());
+        }
+
+        Err(RamError::OutOfBounds)
+    }
+
     pub fn read_8(&self, addr: usize) -> Result<u8, RamError> {
         if let Some(v) = self.0.get(addr).copied() {
             return Ok(v);
@@ -48,6 +56,15 @@ impl Ram {
         
         Ok(byte0 | (byte1 << 8) | (byte2 << 16) | (byte3 << 24)
             | (byte4 << 32) | (byte5 << 40) | (byte6 << 48) | (byte7 << 56))
+    }
+
+    pub fn write_bytes(&mut self, addr: usize, val: Vec<u8>) -> Result<(), RamError> {
+        let bytes = val.len();
+        if let Some(slice) = self.0.get_mut(addr..addr+bytes) {
+            slice.copy_from_slice(&val);
+            return Ok(());
+        }
+        Err(RamError::OutOfBounds)
     }
 
     pub fn write_8(&mut self, addr: usize, val: u8) -> Result<(), RamError> {

@@ -73,19 +73,14 @@ impl CacheSet {
 
         self.data[sub].update(data, 0);
 
-        match self.policy_update(sub, true) {
-            Ok(_) => Ok(sub),
-            Err(err) => Err(err)
-        }
+        self.policy_update(sub, true)?;
+        Ok(sub)
     }
 
-    pub fn update(&mut self, data: Vec<u8>, offset: usize, set: usize) -> Result<usize, CacheError> {
-
+    pub fn update(&mut self, data: Vec<u8>, offset: usize, set: usize) -> Result<(), CacheError> {
         self.data[set].update(data, offset);
-        match self.policy_update(set, false) {
-            Ok(_) => Ok(set),
-            Err(err) => Err(err)
-        }
+        self.policy_update(set, false)?;
+        Ok(())
     }
 
     fn policy_next(&mut self) -> Result<usize, CacheError> {
@@ -93,9 +88,7 @@ impl CacheSet {
             CachePolicy::LRU => { 
                 match self.policy_list.last() {
                     Some(&res) => Ok(res),
-                    None => {
-                        Err(CacheError::PolicyFailed)
-                    }
+                    None => Err(CacheError::PolicyFailed)
                 }
             },
             CachePolicy::LFU => {
@@ -105,9 +98,7 @@ impl CacheSet {
                           .min_by_key( |(_, val)| *val)
                           .map( |(index, _)| index) {
                     Some(min_idx) => Ok(min_idx),
-                    None => {
-                        Err(CacheError::PolicyFailed)
-                    }
+                    None => Err(CacheError::PolicyFailed)
                 }
             },
             CachePolicy::FIFO => {
@@ -253,8 +244,8 @@ impl CacheLevel {
         }
     }
 
-    // General insertion method
-    pub fn insert(&mut self, addr: usize, data: Vec<u8>) -> Result<(), CacheError> {
+    // Used for new blocks. Does not set the dirty bit
+    pub fn insert(&mut self, addr: usize, data: Vec<u8>) -> Result<Option<Vec<u8>>, CacheError> {
         let tmp = (addr & self.index_mask) >> self.index_start;
         let idx = tmp % self.n_sets;
 
@@ -262,15 +253,19 @@ impl CacheLevel {
             Some(_) => {
                 let tag = (addr & self.tag_mask) >> self.tag_start;
 
-                match self.sets[idx].insert(data) {
-                    Ok(_) => {
-                        self.tags[idx] = tag;
-                        self.dirty[idx] = false;
-                        self.valid[idx] = true;
-                        Ok(())
-                    },
-                    Err(err) => Err(err)
+                let i = self.sets[idx].insert(data)?;
+
+                let mut res: Option<Vec<u8>> = None;
+
+                self.tags[idx] = tag;
+                self.valid[idx] = true;
+
+                if self.dirty[idx] {
+                    res = Some(self.sets[idx].data[i].bytes.clone());
+                    self.dirty[idx] = false;
                 }
+
+                Ok(res)
             },
             _ => {
                 Err(CacheError::OutOfBounds)
@@ -278,7 +273,8 @@ impl CacheLevel {
         }
     }
 
-    pub fn update(&mut self, addr: usize, data: Vec<u8>) -> Result<(), CacheError> {
+    // Used for blocks that are already in the cache. Sets the dirty bit
+    pub fn update(&mut self, addr: usize, data: Vec<u8>) -> Result<Option<Vec<u8>>, CacheError> {
         let tmp = (addr & self.index_mask) >> self.index_start;
         let idx = tmp % self.n_sets;
 
@@ -290,13 +286,16 @@ impl CacheLevel {
                 for i in 0..self.way {
                     match (self.valid.get(idx + i), self.tags.get(idx + i)) {
                         (Some(&true), Some(&value)) if value == tag => {
-                            return match self.sets[idx].update(data.clone(), offset, i) {
-                                Ok(_) => {
-                                    self.dirty[idx] = true;
-                                    Ok(())
-                                },
-                                Err(err) => Err(err)
+
+                            let mut res: Option<Vec<u8>>= None;
+
+                            if self.dirty[idx] {
+                                res = Some(self.sets[idx].data[i].bytes.clone());
                             }
+                            self.sets[idx].update(data, offset, i)?;
+                            self.dirty[idx] = true;
+
+                            return Ok(res)
                         },
                         (None, _) | (_, None) => return Err(CacheError::OutOfBounds),
                         _ => (),
@@ -304,9 +303,7 @@ impl CacheLevel {
                 }
                 Err(CacheError::UnreachableState) // Updated always comes after a find
             },
-            _ => {
-                Err(CacheError::OutOfBounds)
-            }
+            None => Err(CacheError::OutOfBounds)
         }
     }
 

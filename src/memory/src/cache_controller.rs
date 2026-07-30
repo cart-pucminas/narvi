@@ -43,27 +43,22 @@ impl CacheController {
         }
     }
 
-    fn read_bytes_ram (&self, addr: usize, bytes: usize) -> Result<Vec<u8>, MemError> {
-        
-        match bytes {
-            1 => match self.ram.read_8(addr) {
-                Ok(val) => Ok(to_byte_vec!(val)),
-                Err(err) => Err(MemError::Ram(err))
+    fn write_back (&mut self, addr: usize, mut level: usize, dirty_block: Vec<u8>) -> Result<(), MemError> {
+
+        level += 1;
+        if level < self.cache_levels.len() {
+            match self.cache_levels[(level) as usize].update(addr, dirty_block) {
+                Ok(opt) => if let Some(dirty_block) = opt {
+                    self.write_back(addr, level, dirty_block)?;
+                },
+                Err(err) => return Err(MemError::Cache(err))
             }
-            2 => match self.ram.read_16(addr) {
-                Ok(val) => Ok(to_byte_vec!(val)),
-                Err(err) => Err(MemError::Ram(err))
+        } else {
+            if let Err(err) = self.ram.write_bytes(addr, dirty_block) {
+                return Err(MemError::Ram(err));
             }
-            4 => match self.ram.read_32(addr) {
-                Ok(val) => Ok(to_byte_vec!(val)),
-                Err(err) => Err(MemError::Ram(err))
-            }
-            8 => match self.ram.read_64(addr) {
-                Ok(val) => Ok(to_byte_vec!(val)),
-                Err(err) => Err(MemError::Ram(err))
-            }
-            _ => Err(MemError::UnreachableState)
         }
+        Ok(())
     }
 
     fn bring_upwards (&mut self, addr: usize, mut level: usize, read_ram: bool) -> Result<(), MemError> {
@@ -71,9 +66,9 @@ impl CacheController {
         let mut block = vec![];
 
         if read_ram {
-            match self.read_bytes_ram(addr, self.block_size) {
+            match self.ram.read_bytes(addr, self.block_size) {
                 Ok(val) => block = val,
-                Err(err) => return Err(err)
+                Err(err) => return Err(MemError::Ram(err))
             }
         } else {
             block = match self.cache_levels[level].get_block(addr) { 
@@ -88,8 +83,11 @@ impl CacheController {
         while level > 0 {
             level -= 1;
             let ret = self.cache_levels[level as usize].insert(addr, block.clone());
-            if let Err(err) = ret {
-                return Err(MemError::Cache(err));
+            match ret {
+                Ok(opt) => if let Some(dirty_block) = opt {
+                    self.write_back(addr, level, dirty_block)?;
+                },
+                Err(err) => return Err(MemError::Cache(err))
             }
         }
         Ok(())
@@ -114,16 +112,11 @@ impl CacheController {
 
     fn read (&mut self, addr: usize, bytes: usize) -> Result<Vec<u8>, MemError> {
 
-        let (hit, level) = match self.find(addr) {
-            Ok(tuple) => tuple,
-            Err(err) => return Err(err)
-        };
+        let (hit, level) = self.find(addr)?;
 
         // Update upper levels if necessary
         if level != 0 {
-            if let Err(err) = self.bring_upwards(addr, level, !hit) {
-                return Err(err)
-            }
+            self.bring_upwards(addr, level, !hit)?;
         }
 
         // Read first level
@@ -136,26 +129,28 @@ impl CacheController {
         }
     }
 
-    fn write (&mut self, addr: usize, data: Vec<u8>, bytes: usize) -> Result<(), MemError> {
-
-        if data.len() != bytes {
-            return Err(MemError::MismatchedSizes);
-        }
+    fn write (&mut self, addr: usize, data: Vec<u8>) -> Result<(), MemError> {
         
-        let mut ret = Ok(());
+        let mut ret: Result<Option<Vec<u8>>, CacheError> = Err(CacheError::UnreachableState);
+
+        let mut level = 0;
 
         if let Ok(true) = self.cache_levels[0].find(addr) { // In the first cache layer
             ret = self.cache_levels[0].update(addr, data);
 
-        } else if let Ok((in_cache, level)) = self.find(addr) {
-            if let Err(err) = self.bring_upwards(addr, level, !in_cache) {
-                return Err(err)
-            }
+        } else if let Ok((in_cache, lvl)) = self.find(addr) {
+            self.bring_upwards(addr, lvl, !in_cache)?;
             ret = self.cache_levels[0].update(addr, data);
+            level = lvl;
         }
 
         match ret {
-            Ok(_) => Ok(()),
+            Ok(opt) => {
+                if let Some(dirty_block) = opt {
+                    self.write_back(addr, level, dirty_block)?;
+                }
+                Ok(())
+            },
             Err(err) => Err(MemError::Cache(err))
         }
     }
@@ -212,20 +207,21 @@ impl CacheController {
     }
 
     pub fn write_8 (&mut self, addr: usize, data: u8) -> Result<(), MemError> {
-        self.write(addr, to_byte_vec!(data), 1)
+        self.write(addr, to_byte_vec!(data))
     }
 
     pub fn write_16 (&mut self, addr: usize, data: u16) -> Result<(), MemError> {
-        self.write(addr, to_byte_vec!(data), 2)
+        self.write(addr, to_byte_vec!(data))
     }
 
     pub fn write_32 (&mut self, addr: usize, data: u32) -> Result<(), MemError> {
-        self.write(addr, to_byte_vec!(data), 4)
+        self.write(addr, to_byte_vec!(data))
     }
 
     pub fn write_64 (&mut self, addr: usize, data: u64) -> Result<(), MemError> {
-        self.write(addr, to_byte_vec!(data), 8)
+        self.write(addr, to_byte_vec!(data))
     }
+
     pub fn print(&self) {
         println!("Ram: \n{:?}", self.ram);
         println!("==========================================");
