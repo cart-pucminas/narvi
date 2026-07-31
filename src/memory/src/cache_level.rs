@@ -38,7 +38,7 @@ impl CacheLine {
 
 #[derive(Debug, Clone)]
 pub struct CacheSet {
-    data: Vec<CacheLine>,
+    cache_lines: Vec<CacheLine>,
     policy: CachePolicy,
     policy_list: Vec<usize>,    // List used for LRU, LFU and FIFO logic 
     way: usize,
@@ -58,31 +58,21 @@ impl CacheSet {
         };
 
         CacheSet {
-            data: vec![CacheLine::new(block_size); set_size],
+            cache_lines: vec![CacheLine::new(block_size); set_size],
             policy,
             policy_list,
             way: set_size
         }
     }
     
-    pub fn insert(&mut self, data: Vec<u8>) -> Result<usize, CacheError> {
-
-        let sub = match self.policy_next() { 
-            Ok(val) => val,
-            Err(err) => {
-                eprintln!("Finding next in the policy has failed. Defaulting to 0");
-                eprintln!("{:?}", err);
-                0
-            }
-        };
-
-        self.data[sub].update(data, 0)?;
-        self.policy_update(sub, true)?;
-        Ok(sub)
+    pub fn insert(&mut self, data: Vec<u8>, replace_i: usize) -> Result<usize, CacheError> {
+        self.cache_lines[replace_i].update(data, 0)?;
+        self.policy_update(replace_i, true)?;
+        Ok(replace_i)
     }
 
     pub fn update(&mut self, data: Vec<u8>, offset: usize, set: usize) -> Result<(), CacheError> {
-        self.data[set].update(data, offset)?;
+        self.cache_lines[set].update(data, offset)?;
         self.policy_update(set, false)?;
         Ok(())
     }
@@ -112,7 +102,7 @@ impl CacheSet {
                         if self.policy_list.len() != 0 {
                             Err(CacheError::PolicyFailed)
                         } else {
-                            Ok(0)
+                            Ok(0)   // First insertion
                         }
                     }
                 }
@@ -148,7 +138,7 @@ impl CacheSet {
     }
 
     pub fn print (&self) {
-        for line in &self.data {
+        for line in &self.cache_lines {
             line.print();
         }
         println!("policy list: {:?}", self.policy_list);
@@ -249,26 +239,47 @@ impl CacheLevel {
         }
     }
 
+    fn get_old (&mut self, index: usize, set_i: usize) -> Option<(usize, Vec<u8>)> {
+
+        let cache_lines = self.sets.get(index)?;
+        let set = cache_lines.cache_lines.get(set_i)?;
+
+        let old_block = set.bytes.clone();
+        
+        let tag = self.tags.get(index + set_i)? << self.tag_start;
+        let old_addr = tag | (index << self.index_start);
+
+        Some((old_addr, old_block))
+    }
+
     // Used for new blocks. Does not set the dirty bit
-    pub fn insert(&mut self, addr: usize, data: Vec<u8>) -> Result<Option<Vec<u8>>, CacheError> {
+    pub fn insert(&mut self, addr: usize, data: Vec<u8>) -> Result<Option<(usize, Vec<u8>)>, CacheError> {
         let tmp = (addr & self.index_mask) >> self.index_start;
         let idx = tmp % self.n_sets;
 
         match self.sets.get(idx) {
             Some(_) => {
+
                 let tag = (addr & self.tag_mask) >> self.tag_start;
 
-                let i = self.sets[idx].insert(data)?;
+                let i = match self.sets[idx].policy_next() {
+                    Ok(sub) => sub,
+                    Err(err) => { println!("{:?}. Defaulting to 0", err); 0 }
+                };
 
-                let mut res: Option<Vec<u8>> = None;
+                let mut res: Option<(usize, Vec<u8>)> = None;
 
-                self.tags[idx] = tag;
-                self.valid[idx] = true;
+                if self.dirty[idx + i] {
+                    res = Some(self.get_old(idx, i)
+                        .ok_or(CacheError::OutOfBounds)?);
 
-                if self.dirty[idx] {
-                    res = Some(self.sets[idx].data[i].bytes.clone());
-                    self.dirty[idx] = false;
+                    self.dirty[idx + i] = false;
                 }
+
+                self.sets[idx].insert(data, i)?;
+
+                self.tags[idx + i] = tag;
+                self.valid[idx + i] = true;
 
                 Ok(res)
             },
@@ -277,7 +288,7 @@ impl CacheLevel {
     }
 
     // Used for blocks that are already in the cache. Sets the dirty bit
-    pub fn update(&mut self, addr: usize, data: Vec<u8>) -> Result<Option<Vec<u8>>, CacheError> {
+    pub fn update(&mut self, addr: usize, data: Vec<u8>) -> Result<(), CacheError> {
         let tmp = (addr & self.index_mask) >> self.index_start;
         let idx = tmp % self.n_sets;
 
@@ -289,16 +300,9 @@ impl CacheLevel {
                 for i in 0..self.way {
                     match (self.valid.get(idx + i), self.tags.get(idx + i)) {
                         (Some(&true), Some(&value)) if value == tag => {
-
-                            let mut res: Option<Vec<u8>>= None;
-
-                            if self.dirty[idx] {
-                                res = Some(self.sets[idx].data[i].bytes.clone());
-                            }
                             self.sets[idx].update(data, offset, i)?;
                             self.dirty[idx] = true;
-
-                            return Ok(res)
+                            return Ok(());
                         },
                         (None, _) | (_, None) => return Err(CacheError::OutOfBounds),
                         _ => (),
@@ -321,7 +325,7 @@ impl CacheLevel {
             match (self.valid.get(idx + i), self.tags.get(idx + i)) {
                 (Some(&true), Some(&value)) if value == tag => {
                     let offset = addr & self.offset_mask;
-                    let block = self.sets[idx].data[i].clone();
+                    let block = self.sets[idx].cache_lines[i].clone();
                     let slice = &block.bytes[offset..bytes];
 
                     self.sets[idx].policy_update(i, false)?;

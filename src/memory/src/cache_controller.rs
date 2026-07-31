@@ -47,12 +47,8 @@ impl CacheController {
 
         level += 1;
         if level < self.cache_levels.len() {
-            match self.cache_levels[(level) as usize].update(addr, dirty_block) {
-                Ok(opt) => if let Some(dirty_block) = opt {
-                    self.write_back(addr, level, dirty_block)?;
-                },
-                Err(err) => return Err(MemError::Cache(err))
-            }
+            self.cache_levels[(level) as usize].update(addr, dirty_block)
+                                               .map_err(MemError::Cache)?;
         } else {
             if let Err(err) = self.ram.write_bytes(addr, dirty_block) {
                 return Err(MemError::Ram(err));
@@ -84,8 +80,8 @@ impl CacheController {
             level -= 1;
             let ret = self.cache_levels[level as usize].insert(addr, block.clone());
             match ret {
-                Ok(opt) => if let Some(dirty_block) = opt {
-                    self.write_back(addr, level, dirty_block)?;
+                Ok(opt) => if let Some((dirty_addr, dirty_block)) = opt {
+                    self.write_back(dirty_addr, level, dirty_block)?;
                 },
                 Err(err) => return Err(MemError::Cache(err))
             }
@@ -131,28 +127,15 @@ impl CacheController {
 
     fn write (&mut self, addr: usize, data: Vec<u8>) -> Result<(), MemError> {
         
-        let mut ret: Result<Option<Vec<u8>>, CacheError> = Err(CacheError::UnreachableState);
-
-        let mut level = 0;
-
         if let Ok(true) = self.cache_levels[0].find(addr) { // In the first cache layer
-            ret = self.cache_levels[0].update(addr, data);
+            self.cache_levels[0].update(addr, data).map_err(MemError::Cache)?;
 
         } else if let Ok((in_cache, lvl)) = self.find(addr) {
             self.bring_upwards(addr, lvl, !in_cache)?;
-            ret = self.cache_levels[0].update(addr, data);
-            level = lvl;
+            self.cache_levels[0].update(addr, data)
+                  .map_err(MemError::Cache)?;
         }
-
-        match ret {
-            Ok(opt) => {
-                if let Some(dirty_block) = opt {
-                    self.write_back(addr, level, dirty_block)?;
-                }
-                Ok(())
-            },
-            Err(err) => Err(MemError::Cache(err))
-        }
+        Ok(())
     }
 
     pub fn read_8 (&mut self, addr: usize) -> Result<u8, MemError> {

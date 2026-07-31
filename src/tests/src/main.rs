@@ -7,7 +7,7 @@ fn main() {
     let n_sets = 1;
 
     let l1 = CacheLevel::new(block_size, associativity, n_sets, CachePolicy::LRU);
-    let l2 = CacheLevel::new(block_size, associativity, n_sets, CachePolicy::LRU);
+    let l2 = CacheLevel::new(block_size, associativity, n_sets, CachePolicy::FIFO);
     let l3 = CacheLevel::new(block_size, associativity, n_sets, CachePolicy::LFU);
     
     let mut ram = Ram::with_size(1024);
@@ -19,8 +19,6 @@ fn main() {
     let _ = cache.read_8(0);
     let _ = cache.write_8(0, 1);
     let _ = cache.write_8(0, 2);
-    let _ = cache.write_8(0, 3);
-    let _ = cache.write_8(0, 4);
 
     cache.print();
 }
