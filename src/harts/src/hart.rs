@@ -1,6 +1,8 @@
 mod extensions;
 mod rv64i;
 
+use std::{error::Error, fmt::Display};
+
 use memory::CacheL1;
 
 use serde::{Serialize, Deserialize};
@@ -35,6 +37,28 @@ pub enum HartError {
     FLENMisalligned,
     FLENTooShort,
 }
+
+impl HartError {
+    fn as_str(&self) -> String {
+        match self {
+            Self::RegisterNotFound => "RegisterNotFound".to_string(),
+            Self::InstructionNotFound => "InstructionNotFound".to_string(),
+            Self::ExecutionError => "ExecutionError".to_string(),
+            Self::ReservedInstruction(inst) => format!("ReservedInstruction({inst})"),
+            Self::InstructionAddressMisaligned => "InstructionAddressMisaligned".to_string(),
+            Self::FLENMisalligned => "FLENMisalligned".to_string(),
+            Self::FLENTooShort => "FLENTooShort".to_string(),
+        }
+    }
+}
+
+impl Display for HartError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "HartError: {}", self.as_str())
+    }
+}
+
+impl Error for HartError {}
 
 #[derive(Clone, Debug, Serialize, PartialEq)]
 enum FRegs {
@@ -82,6 +106,8 @@ pub struct Hart {
     flen: u8,
     #[serde(skip)]
     fcsr: u32,
+    // TODO: temporary flag used by ebreak (see rv64i implementation)
+    break_e: bool
 }
 
 impl From<HartConfig> for Hart {
@@ -99,6 +125,7 @@ impl From<HartConfig> for Hart {
                 (false, false) => 0,
             },
             fcsr: 0,
+            break_e: false
         }
     }
 }
@@ -118,6 +145,7 @@ impl Hart {
                 (false, false) => 0,
             },
             fcsr: 0,
+            break_e: false
         }
     }
 
@@ -292,10 +320,9 @@ impl Hart {
     }
 
     /// Simulates full pipeline execution for one instruction
-    pub fn update(&self) -> Result<(), HartError> {
-        todo!("fetch from ram");
+    pub fn update(&mut self) -> Result<bool, HartError> {
+        let inst = self.l1.get32(self.pc as usize);
 
-        let inst: u32 = 0;
         let mut result = self.execute_rv64i(inst);
 
         if matches!(result, Err(HartError::InstructionNotFound)) && self.extensions.m {
@@ -310,6 +337,12 @@ impl Hart {
             result = self.execute_d(inst);
         }
 
-        result
+        self.pc = self.pc + 4;
+        
+        result.map(|_| self.break_e)
+    }
+
+    pub fn l1_snapshot(&self) -> Vec<u8> {
+        self.l1.clone_content()
     }
 }

@@ -609,7 +609,8 @@ impl Hart {
     }
 
     fn ebreak(&mut self, inst: u32) -> Result<(), HartError> {
-        todo!("ebreak")
+        // TODO: temporarily using ebreak as a halt
+        self.break_e = true;
     }
 
     fn addiw (&mut self, inst: u32) -> Result<(), HartError> {

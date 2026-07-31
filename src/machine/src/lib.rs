@@ -66,6 +66,7 @@ pub struct Machine {
     // TODO: had to rename because there is a crate with the same name 
     // harts: Vec<Hart>,
     installed_harts: Vec<Hart>,
+    // TODO: caches defined here but only some must be shared between harts
     l1: CacheL1,
     l2: (),
     l3: (),
@@ -74,6 +75,8 @@ pub struct Machine {
     l2_share: u8,
     l3_share: u8,
     l4_share: u8,
+    // TODO: temporary flag to know when to stop
+    done: bool
 }
 
 impl Machine {
@@ -94,16 +97,22 @@ impl Machine {
                 l2_share: config.l2_share, 
                 l3_share: config.l3_share, 
                 l4_share: config.l4_share, 
+                done: false
             })
         }
     }
 
     /// Starts the simulation loop
-    pub fn start(&self) -> Result<(), HartError> {
-        // TODO: temporary machine loop
-        loop {
-            // Considering only one hart for now            
-            self.installed_harts[0].update()?
-        }
+    pub fn update(&mut self) -> Result<(), HartError> {
+        self.done = self.installed_harts[0].update()?;
+        Ok(())
+    }
+
+    pub fn dump_l1(&self) -> Vec<u8> {
+        self.installed_harts[0].l1_snapshot()
+    }
+
+    pub fn done(&self) -> bool {
+        self.done
     }
 }

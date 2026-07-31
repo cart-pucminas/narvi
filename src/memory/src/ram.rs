@@ -3,9 +3,15 @@ pub enum RamError {
 }
 
 /// Simple byte-addressable little-endian RAM implementation
+#[derive(Debug)]
 pub struct Ram(Vec<u8>);
 
 impl Ram {
+
+    pub fn new(content: Vec<u8>) -> Self {
+        Ram(content)
+    }
+
     pub fn with_size(size: usize) -> Self {
         Ram(vec![0; size])
     }

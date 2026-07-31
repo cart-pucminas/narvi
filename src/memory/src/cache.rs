@@ -24,6 +24,10 @@ impl CacheL1 {
         cache
     }
 
+    pub fn clone_content(&self) -> Vec<u8> {
+        self.arr.clone()
+    }
+
     /// Reads a single byte (8 bits) from the memory at the given address.
     ///
     /// # Arguments
