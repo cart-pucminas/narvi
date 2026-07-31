@@ -21,9 +21,14 @@ impl CacheLine {
         CacheLine { bytes: vec![0; block_size] }
     }
 
-    pub fn update(&mut self, vec: Vec<u8>, offset: usize) {
+    pub fn update(&mut self, vec: Vec<u8>, offset: usize) -> Result<(), CacheError> {
         let len = std::cmp::min(self.bytes.len(), vec.len());
-        self.bytes[offset..len+offset].copy_from_slice(&vec[..len]);
+
+        if let Some(slice) = self.bytes.get_mut(offset..len+offset) {
+            slice.copy_from_slice(&vec[..len]);
+            return Ok(())
+        } 
+        Err(CacheError::OutOfBounds)
     }
 
     pub fn print(&self) {
@@ -71,14 +76,13 @@ impl CacheSet {
             }
         };
 
-        self.data[sub].update(data, 0);
-
+        self.data[sub].update(data, 0)?;
         self.policy_update(sub, true)?;
         Ok(sub)
     }
 
     pub fn update(&mut self, data: Vec<u8>, offset: usize, set: usize) -> Result<(), CacheError> {
-        self.data[set].update(data, offset);
+        self.data[set].update(data, offset)?;
         self.policy_update(set, false)?;
         Ok(())
     }
@@ -120,26 +124,27 @@ impl CacheSet {
     fn policy_update(&mut self, idx: usize, insertion: bool) -> Result<(), CacheError> {
         match self.policy {
             CachePolicy::LRU => { 
-                let old_idx = match self.policy_list.iter().position(|x| *x == idx) {
-                    Some(idx) => idx,
+                let old_pos = match self.policy_list.iter().position(|x| *x == idx) {
+                    Some(pos) => pos,
                     None => return Err(CacheError::PolicyFailed)
                 };
-                self.policy_list.remove(old_idx);
+                self.policy_list.remove(old_pos);
                 self.policy_list.insert(0, idx);
-                Ok(())
             },
             CachePolicy::LFU => {
+                if insertion {  // Reset on new block
+                    self.policy_list[idx] = 0;
+                }
                 self.policy_list[idx] += 1;
-                Ok(())
             },
             CachePolicy::FIFO => {
                 if insertion {
                     self.policy_list.insert(0, idx);
                 }
-                Ok(())
             },
-            CachePolicy::Random => Ok(()),
+            CachePolicy::Random => (),
         }
+        Ok(())
     }
 
     pub fn print (&self) {
@@ -267,9 +272,7 @@ impl CacheLevel {
 
                 Ok(res)
             },
-            _ => {
-                Err(CacheError::OutOfBounds)
-            }
+            _ => Err(CacheError::OutOfBounds)
         }
     }
 
@@ -321,10 +324,8 @@ impl CacheLevel {
                     let block = self.sets[idx].data[i].clone();
                     let slice = &block.bytes[offset..bytes];
 
-                    return match self.sets[idx].policy_update(i, false) {
-                        Ok(_) => Ok(CacheReturn::Hit(slice.to_vec())),
-                        Err(err) => Err(err)
-                    };
+                    self.sets[idx].policy_update(i, false)?;
+                    return Ok(CacheReturn::Hit(slice.to_vec()))
                 },
                 (None, _) | (_, None) => return Err(CacheError::OutOfBounds),
                 _ => (),
@@ -346,10 +347,9 @@ impl CacheLevel {
         for i in 0..self.way {
             match (self.valid.get(idx + i), self.tags.get(idx + i)) {
                 (Some(&true), Some(&value)) if value == tag => {
-                    return match self.sets[idx].policy_update(i, false) {
-                        Ok(_) => Ok(true),
-                        Err(err) => Err(err)
-                    };
+
+                    self.sets[idx].policy_update(i, false)?;
+                    return Ok(true);
                 },
                 (None, _) | (_, None) => return Err(CacheError::OutOfBounds),
                 _ => (),

@@ -3,10 +3,12 @@ use memory::*;
 fn main() {
 
     let block_size = 4;
+    let associativity = 2;
+    let n_sets = 1;
 
-    let l1 = CacheLevel::new(block_size, 2, 4, CachePolicy::LRU);
-    let l2 = CacheLevel::new(block_size, 2, 4, CachePolicy::LRU);
-    let l3 = CacheLevel::new(block_size, 2, 4, CachePolicy::Random);
+    let l1 = CacheLevel::new(block_size, associativity, n_sets, CachePolicy::LRU);
+    let l2 = CacheLevel::new(block_size, associativity, n_sets, CachePolicy::LRU);
+    let l3 = CacheLevel::new(block_size, associativity, n_sets, CachePolicy::LFU);
     
     let mut ram = Ram::with_size(1024);
     let _ = ram.write_16(0, 300);

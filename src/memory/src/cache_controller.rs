@@ -223,8 +223,6 @@ impl CacheController {
     }
 
     pub fn print(&self) {
-        println!("Ram: \n{:?}", self.ram);
-        println!("==========================================");
         println!("Cache: ");
         
         let mut i = 0;
@@ -233,5 +231,8 @@ impl CacheController {
             c.print();
             i += 1;
         }
+        println!("==========================================");
+        println!("\nRam: \n{:?}", self.ram);
+        println!("==========================================");
     }
 }
