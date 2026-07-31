@@ -1,10 +1,25 @@
 use machine::{Machine, MachineConfig};
-use std::fs::File;
-use std::io::prelude::*;
+use memory::Ram;
+use std::{
+    env,
+    fs,
+    fs::File,
+    io::prelude::*
+};
 
 fn main() {
     let config = MachineConfig::default();
-    let _machine = Machine::new(&config);
+
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() == 1 {
+        panic!("Expected a file path");
+    }
+    
+    let _machine = {
+        let assembly = fs::read(&args[1]).expect("Could not read file");
+        Machine::new(&config, assembly)
+    };
 
     let yaml = serde_yaml::to_string(&config).unwrap();
     {
