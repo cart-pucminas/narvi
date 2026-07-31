@@ -18,6 +18,12 @@ impl CacheL1 {
         }
     }
 
+    pub fn with_content(size: usize, content: Vec<u8>) -> Self {
+        let mut cache = Self::new(size);
+        cache.arr.splice(0..0, content);
+        cache
+    }
+
     /// Reads a single byte (8 bits) from the memory at the given address.
     ///
     /// # Arguments
