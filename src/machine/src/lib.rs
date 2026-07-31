@@ -1,4 +1,5 @@
 use harts::hart::{Extensions, Hart, HartError};
+use memory::CacheL1;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Eq)]
@@ -65,7 +66,7 @@ pub struct Machine {
     // TODO: had to rename because there is a crate with the same name 
     // harts: Vec<Hart>,
     installed_harts: Vec<Hart>,
-    l1: (),
+    l1: CacheL1,
     l2: (),
     l3: (),
     l4: (),
@@ -76,11 +77,11 @@ pub struct Machine {
 }
 
 impl Machine {
-    pub fn new(config: &MachineConfig) -> Result<Self, MachineError>{
+    pub fn new(config: &MachineConfig, asm: Vec<u8>) -> Result<Self, MachineError>{
         if !config.is_valid() {
             Err(MachineError::InvalidConfig)
         } else {
-            let l1 = ();
+            let l1 = CacheL1::with_content(config.l1_size, asm);
             let l2 = ();
             let l3 = ();
             let l4 = ();
