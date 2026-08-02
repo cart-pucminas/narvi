@@ -1,7 +1,13 @@
 mod extensions;
 mod rv64i;
 
-use std::{error::Error, fmt::Display};
+use std::{
+    error::Error, 
+    fmt::{
+        Display, 
+        Debug
+    }
+};
 
 use memory::CacheL1;
 
@@ -27,14 +33,14 @@ enum Reg {
     t3 = 28, t4 = 29, t5 = 30, t6 = 31,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 pub enum HartError {
     RegisterNotFound,
-    InstructionNotFound,
+    InstructionNotFound(u64),
     ExecutionError,
     ReservedInstruction(String),
     InstructionAddressMisaligned,
-    FLENMisalligned,
+    FLENMisaligned,
     FLENTooShort,
 }
 
@@ -42,17 +48,23 @@ impl HartError {
     fn as_str(&self) -> String {
         match self {
             Self::RegisterNotFound => "RegisterNotFound".to_string(),
-            Self::InstructionNotFound => "InstructionNotFound".to_string(),
+            Self::InstructionNotFound(opcode) => format!("InstructionNotFound({opcode:X})"),
             Self::ExecutionError => "ExecutionError".to_string(),
             Self::ReservedInstruction(inst) => format!("ReservedInstruction({inst})"),
             Self::InstructionAddressMisaligned => "InstructionAddressMisaligned".to_string(),
-            Self::FLENMisalligned => "FLENMisalligned".to_string(),
+            Self::FLENMisaligned => "FLENMisalligned".to_string(),
             Self::FLENTooShort => "FLENTooShort".to_string(),
         }
     }
 }
 
 impl Display for HartError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "HartError: {}", self.as_str())
+    }
+}
+
+impl Debug for HartError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "HartError: {}", self.as_str())
     }
@@ -325,21 +337,26 @@ impl Hart {
 
         let mut result = self.execute_rv64i(inst);
 
-        if matches!(result, Err(HartError::InstructionNotFound)) && self.extensions.m {
+        if matches!(result, Err(HartError::InstructionNotFound(_))) && self.extensions.m {
             result = self.execute_m(inst);
         }
 
-        if matches!(result, Err(HartError::InstructionNotFound)) && self.extensions.f {
+        if matches!(result, Err(HartError::InstructionNotFound(_))) && self.extensions.f {
             result = self.execute_f(inst);
         }
 
-        if matches!(result, Err(HartError::InstructionNotFound)) && self.extensions.d {
+        if matches!(result, Err(HartError::InstructionNotFound(_))) && self.extensions.d {
             result = self.execute_d(inst);
         }
 
         self.pc = self.pc + 4;
         
         result.map(|_| self.break_e)
+    }
+
+    // TODO: temporary function for quick simulation test, should not exist
+    pub fn overwrite_l1(&mut self, content: Vec<u8>) {
+        self.l1 = CacheL1::with_content(self.l1_size, content);
     }
 
     pub fn l1_snapshot(&self) -> Vec<u8> {

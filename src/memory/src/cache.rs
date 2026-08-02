@@ -13,15 +13,21 @@ impl CacheL1 {
     ///
     /// * `size` - The desired total size of the memory space *in bytes*.
     pub fn new(size: usize) -> Self {
-        CacheL1 {
+        Self {
             arr: vec![0; size],
         }
     }
 
-    pub fn with_content(size: usize, content: Vec<u8>) -> Self {
-        let mut cache = Self::new(size);
-        cache.arr.splice(0..0, content);
-        cache
+    pub fn with_content(size: usize, mut content: Vec<u8>) -> Self {
+        if content.len() > size {
+            todo!("error handling here I'm busy with other narvi stuff right now");
+        }
+
+        content.resize(size, 0);
+
+        Self {
+            arr: content
+        }
     }
 
     pub fn clone_content(&self) -> Vec<u8> {

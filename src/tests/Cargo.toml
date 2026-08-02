@@ -13,5 +13,5 @@ memory = { workspace = true }
 serde_yaml = { workspace = true }
 
 [[bin]]
-name = "narvi-test"
+name = "test"
 path = "src/main.rs"

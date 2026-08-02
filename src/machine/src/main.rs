@@ -18,12 +18,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     
     let mut machine = {
         let assembly = fs::read(&args[1]).expect("Could not read file");
+        println!("{assembly:X?}");
         Machine::new(&config, assembly).expect("Could not construct machine")
     };
 
     while !machine.done() {
         machine.update()?
     }
+
+    println!("{:?}", machine.get_hart(0));
 
     print_hex_table(&machine.dump_l1());    
 

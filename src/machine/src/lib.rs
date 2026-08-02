@@ -39,7 +39,6 @@ impl Default for MachineConfig {
 }
 
 impl MachineConfig {
-
     pub fn is_valid(&self) -> bool {
         if self.hart_count.is_multiple_of(self.l1_share) {
            return false;
@@ -58,7 +57,6 @@ impl MachineConfig {
         }
         true
     }
-
 }
 
 #[derive(Debug)]
@@ -67,10 +65,6 @@ pub struct Machine {
     // harts: Vec<Hart>,
     installed_harts: Vec<Hart>,
     // TODO: caches defined here but only some must be shared between harts
-    l1: CacheL1,
-    l2: (),
-    l3: (),
-    l4: (),
     l1_share: u8,
     l2_share: u8,
     l3_share: u8,
@@ -82,30 +76,39 @@ pub struct Machine {
 impl Machine {
     pub fn new(config: &MachineConfig, asm: Vec<u8>) -> Result<Self, MachineError>{
         if !config.is_valid() {
-            Err(MachineError::InvalidConfig)
-        } else {
-            let l1 = CacheL1::with_content(config.l1_size, asm);
-            let l2 = ();
-            let l3 = ();
-            let l4 = ();
-            // let harts = vec![Hart::from_extensions(&config.extensions, 0xFFFF); config.hart_count as usize];
-            let installed_harts: Vec<Hart> = Vec::new(); 
-            Ok(Self{
-                installed_harts,
-                l1, l2, l3, l4,
-                l1_share: config.l1_share, 
-                l2_share: config.l2_share, 
-                l3_share: config.l3_share, 
-                l4_share: config.l4_share, 
-                done: false
-            })
+            println!("machine config is invalid, but proceeding for now anyways");
+            //Err(MachineError::InvalidConfig)
         }
+
+        let mut installed_harts = vec![Hart::from_extensions(&config.extensions, 0xFF); config.hart_count as usize];
+
+        // TODO: overwriting entire l1 here for quick program loading, should be removed
+        installed_harts[0].overwrite_l1(asm);
+
+        Ok(Self{
+            installed_harts,
+            l1_share: config.l1_share, 
+            l2_share: config.l2_share, 
+            l3_share: config.l3_share, 
+            l4_share: config.l4_share, 
+            done: false
+        })
     }
 
     /// Starts the simulation loop
     pub fn update(&mut self) -> Result<(), HartError> {
         self.done = self.installed_harts[0].update()?;
         Ok(())
+    }
+
+    // intended for visualization and debugging purposes only
+    // should be safe since it returns an immutable borrow
+    pub fn get_hart(&self, hart_id: usize) -> &Hart {
+        if hart_id > 0 {
+            todo!("multiple harts unsupported, use id 0");
+        }
+
+        &self.installed_harts[hart_id]
     }
 
     pub fn dump_l1(&self) -> Vec<u8> {

@@ -44,7 +44,7 @@ impl Hart {
             (0b1100000,    _, 0b00011,     _, 0b1010011) => self.fcvt_lu_s(inst),
             (0b1101000,    _, 0b00010,     _, 0b1010011) => self.fcvt_s_l(inst),
             (0b1101000,    _, 0b00011,     _, 0b1010011) => self.fcvt_s_lu(inst),
-            _ => Err(HartError::InstructionNotFound),
+            _ => Err(HartError::InstructionNotFound(inst as u64)),
         }
     }
 

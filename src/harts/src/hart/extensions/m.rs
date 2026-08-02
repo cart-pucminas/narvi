@@ -20,7 +20,7 @@ impl Hart {
             (0b0111011, 0b101) => self.divuw(inst),
             (0b0111011, 0b110) => self.remw(inst),
             (0b0111011, 0b111) => self.remuw(inst),
-            _ => Err(HartError::InstructionNotFound),
+            _ => Err(HartError::InstructionNotFound(inst as u64)),
         }
     }
 

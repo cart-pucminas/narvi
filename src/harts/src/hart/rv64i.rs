@@ -19,7 +19,7 @@ impl Hart {
             0x73 => self.environment(inst),
             0x1B => self.al_imm_w(inst),
             0x3B => self.al_w(inst),
-            _ => Err(HartError::InstructionNotFound),
+            _ => Err(HartError::InstructionNotFound(inst as u64)),
         }
     }
 
@@ -32,7 +32,7 @@ impl Hart {
             5 => self.bge(inst),
             6 => self.bltu(inst),
             7 => self.bgeu(inst),
-            _ => Err(HartError::InstructionNotFound),
+            _ => Err(HartError::InstructionNotFound(inst as u64)),
         }
     }
 
@@ -46,7 +46,7 @@ impl Hart {
             5 => self.lhu(inst),
             6 => self.lwu(inst),
             3 => self.ld(inst),
-            _ => Err(HartError::InstructionNotFound),
+            _ => Err(HartError::InstructionNotFound(inst as u64)),
         }
     }
 
@@ -57,7 +57,7 @@ impl Hart {
             1 => self.sh(inst),
             2 => self.sw(inst),
             3 => self.sd(inst),
-            _ => Err(HartError::InstructionNotFound),
+            _ => Err(HartError::InstructionNotFound(inst as u64)),
         }
     }
 
@@ -79,7 +79,7 @@ impl Hart {
             } else {
                 Err(HartError::ExecutionError)
             },
-            _ => Err(HartError::InstructionNotFound),
+            _ => Err(HartError::InstructionNotFound(inst as u64)),
         }
     }
 
@@ -92,7 +92,7 @@ impl Hart {
             } else if funct7 == 0b100000 {
                 self.sub(inst)
             } else {
-                Err(HartError::InstructionNotFound) 
+                Err(HartError::InstructionNotFound(inst as u64)) 
             },
             1 => self.sll(inst),
             2 => self.slt(inst),
@@ -103,11 +103,11 @@ impl Hart {
             } else if funct7 == 0b100000 {
                 self.sra(inst)
             } else {
-                Err(HartError::InstructionNotFound) 
+                Err(HartError::InstructionNotFound(inst as u64)) 
             },
             6 => self.or(inst),
             7 => self.and(inst),
-            _ => Err(HartError::InstructionNotFound),
+            _ => Err(HartError::InstructionNotFound(inst as u64)),
         }
     }
 
@@ -611,6 +611,7 @@ impl Hart {
     fn ebreak(&mut self, inst: u32) -> Result<(), HartError> {
         // TODO: temporarily using ebreak as a halt
         self.break_e = true;
+        Ok(())
     }
 
     fn addiw (&mut self, inst: u32) -> Result<(), HartError> {
