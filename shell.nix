@@ -9,6 +9,7 @@ pkgs.mkShell rec {
     cargo
     clippy
     gcc
+    gdb
     expat
     fontconfig
     freetype
@@ -27,7 +28,7 @@ pkgs.mkShell rec {
 
   shellHook = ''
     echo ""
-    echo "Packages loaded: gcc, cargo, rustc, rustfmt, clippy"
+    echo "Packages loaded: gcc, gdb, cargo, rustc, rustfmt, clippy"
   '';
 
 }
