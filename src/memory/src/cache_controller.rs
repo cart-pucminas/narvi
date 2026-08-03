@@ -48,11 +48,10 @@ impl CacheController {
         level += 1;
         if level < self.cache_levels.len() {
             self.cache_levels[(level) as usize].update(addr, dirty_block)
-                                               .map_err(MemError::Cache)?;
+            .map_err(MemError::Cache)?;
         } else {
-            if let Err(err) = self.ram.write_bytes(addr, dirty_block) {
-                return Err(MemError::Ram(err));
-            }
+            self.ram.write_bytes(addr, dirty_block)
+            .map_err(MemError::Ram)?;
         }
         Ok(())
     }
@@ -67,23 +66,20 @@ impl CacheController {
                 Err(err) => return Err(MemError::Ram(err))
             }
         } else {
-            block = match self.cache_levels[level].get_block(addr) { 
-                Ok(ret) => match ret {
-                    CacheReturn::Hit(val) => val,
-                    CacheReturn::Miss => return Err(MemError::UnreachableState) // Value was found
-                },
-                Err(err) => return Err(MemError::Cache(err))
+            block = match self.cache_levels[level].get_block(addr)
+            .map_err(MemError::Cache)? { 
+                CacheReturn::Hit(val) => val,
+                CacheReturn::Miss => return Err(MemError::UnreachableState) // Value was found
             }
         }
 
         while level > 0 {
             level -= 1;
-            let ret = self.cache_levels[level as usize].insert(addr, block.clone());
-            match ret {
-                Ok(opt) => if let Some((dirty_addr, dirty_block)) = opt {
-                    self.write_back(dirty_addr, level, dirty_block)?;
-                },
-                Err(err) => return Err(MemError::Cache(err))
+            let opt = self.cache_levels[level as usize].insert(addr, block.clone())
+                      .map_err(MemError::Cache)?;
+
+            if let Some((dirty_addr, dirty_block)) = opt {
+                self.write_back(dirty_addr, level, dirty_block)?;
             }
         }
         Ok(())
@@ -116,24 +112,23 @@ impl CacheController {
         }
 
         // Read first level
-        match self.cache_levels[0].read(addr, bytes) {
-            Ok(ret) => match ret {
-                CacheReturn::Hit(val) => Ok(val),
-                CacheReturn::Miss => return Err(MemError::UpdateFailed)
-            }
-            Err(err) => return Err(MemError::Cache(err))
+        match self.cache_levels[0].read(addr, bytes)
+        .map_err(MemError::Cache)? {
+            CacheReturn::Hit(val) => Ok(val),
+            CacheReturn::Miss => return Err(MemError::UpdateFailed)
         }
     }
 
     fn write (&mut self, addr: usize, data: Vec<u8>) -> Result<(), MemError> {
         
         if let Ok(true) = self.cache_levels[0].find(addr) { // In the first cache layer
-            self.cache_levels[0].update(addr, data).map_err(MemError::Cache)?;
+            self.cache_levels[0].update(addr, data)
+            .map_err(MemError::Cache)?;
 
         } else if let Ok((in_cache, lvl)) = self.find(addr) {
             self.bring_upwards(addr, lvl, !in_cache)?;
             self.cache_levels[0].update(addr, data)
-                  .map_err(MemError::Cache)?;
+            .map_err(MemError::Cache)?;
         }
         Ok(())
     }
