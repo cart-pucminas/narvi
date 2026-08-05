@@ -2,9 +2,11 @@ use serde::Deserialize;
 
 use crate::{
     Ram, 
-    ram::RamError,
-    cache_config::CacheError,
-    cache_config::CacheReturn,
+    MemError,
+    cache_config::{
+        CacheReturn,
+        CacheLevelConfig
+    },
     cache_level::CacheLevel
 };
 
@@ -14,54 +16,52 @@ macro_rules! to_byte_vec {
     };
 }
 
-#[derive(Debug)]
-pub enum MemError {
-    Ram(RamError),
-    Cache(CacheError),
-    UnreachableState,
-    UpdateFailed,
-    MismatchedSizes,
-}
-
 #[derive(Debug, Deserialize)]
 pub struct CacheController {
     cache_levels: Vec<CacheLevel>,
-
-    #[serde(skip)]
-    ram: Ram,
 
     #[serde(skip)]
     block_size: usize
 }
 
 impl CacheController {
-    pub fn new (cache_levels: Vec<CacheLevel>, ram: Ram, block_size: usize) -> Self {
-        CacheController {
-            cache_levels,
-            block_size,
-            ram
+    pub fn new (cache_config: &Vec<CacheLevelConfig>) -> Result<Self, &'static str> {
+        if cache_config.is_empty() {
+            return Err("Missing config")
         }
+
+        Ok(
+            Self {
+                cache_levels: cache_config.iter()
+                    .map(|cfg| CacheLevel::from(cfg.to_owned()))
+                    .collect(),
+                block_size: match cache_config.last() {
+                    Some(cfg) => cfg.block_size,
+                    None => panic!("cache_config is guaranteed to be non-empty")
+                }
+            }
+        )
     }
 
-    fn write_back (&mut self, addr: usize, mut level: usize, dirty_block: Vec<u8>) -> Result<(), MemError> {
+    fn write_back (&mut self, ram: &mut Ram, addr: usize, mut level: usize, dirty_block: Vec<u8>) -> Result<(), MemError> {
 
         level += 1;
         if level < self.cache_levels.len() {
             self.cache_levels[(level) as usize].update(addr, dirty_block)
             .map_err(MemError::Cache)?;
         } else {
-            self.ram.write_bytes(addr, dirty_block)
-            .map_err(MemError::Ram)?;
+            ram.write_bytes(addr, dirty_block)
+                .map_err(MemError::Ram)?;
         }
         Ok(())
     }
 
-    fn bring_upwards (&mut self, addr: usize, mut level: usize, read_ram: bool) -> Result<(), MemError> {
+    fn bring_upwards (&mut self, ram: &mut Ram, addr: usize, mut level: usize, read_ram: bool) -> Result<(), MemError> {
 
         let mut block = vec![];
 
         if read_ram {
-            match self.ram.read_bytes(addr, self.block_size) {
+            match ram.read_bytes(addr, self.block_size) {
                 Ok(val) => block = val,
                 Err(err) => return Err(MemError::Ram(err))
             }
@@ -79,7 +79,7 @@ impl CacheController {
                       .map_err(MemError::Cache)?;
 
             if let Some((dirty_addr, dirty_block)) = opt {
-                self.write_back(dirty_addr, level, dirty_block)?;
+                self.write_back(ram, dirty_addr, level, dirty_block)?;
             }
         }
         Ok(())
@@ -102,13 +102,13 @@ impl CacheController {
         Ok((hit, level as usize))
     }
 
-    fn read (&mut self, addr: usize, bytes: usize) -> Result<Vec<u8>, MemError> {
+    fn read (&mut self, ram: &mut Ram, addr: usize, bytes: usize) -> Result<Vec<u8>, MemError> {
 
         let (hit, level) = self.find(addr)?;
 
         // Update upper levels if necessary
         if level != 0 {
-            self.bring_upwards(addr, level, !hit)?;
+            self.bring_upwards(ram, addr, level, !hit)?;
         }
 
         // Read first level
@@ -119,29 +119,29 @@ impl CacheController {
         }
     }
 
-    fn write (&mut self, addr: usize, data: Vec<u8>) -> Result<(), MemError> {
+    fn write (&mut self, ram: &mut Ram, addr: usize, data: Vec<u8>) -> Result<(), MemError> {
         
         if let Ok(true) = self.cache_levels[0].find(addr) { // In the first cache layer
             self.cache_levels[0].update(addr, data)
             .map_err(MemError::Cache)?;
 
         } else if let Ok((in_cache, lvl)) = self.find(addr) {
-            self.bring_upwards(addr, lvl, !in_cache)?;
+            self.bring_upwards(ram, addr, lvl, !in_cache)?;
             self.cache_levels[0].update(addr, data)
             .map_err(MemError::Cache)?;
         }
         Ok(())
     }
 
-    pub fn read_8 (&mut self, addr: usize) -> Result<u8, MemError> {
-        match self.read(addr, 1) {
+    pub fn read_8 (&mut self, ram: &mut Ram, addr: usize) -> Result<u8, MemError> {
+        match self.read(ram, addr, 1) {
             Ok(val) => Ok(val[0]),
             Err(err) => Err(err)
         }
     }
     
-    pub fn read_16 (&mut self, addr: usize) -> Result<u16, MemError> {
-        match self.read(addr, 2) {
+    pub fn read_16 (&mut self, ram: &mut Ram, addr: usize) -> Result<u16, MemError> {
+        match self.read(ram, addr, 2) {
             Ok(val) => {
                 let mut tmp = (val[1] as u16) << 8;
                 tmp |= val[0] as u16;
@@ -152,8 +152,8 @@ impl CacheController {
         }
     }
 
-    pub fn read_32 (&mut self, addr: usize) -> Result<u32, MemError> {
-        match self.read(addr, 4) {
+    pub fn read_32 (&mut self, ram: &mut Ram, addr: usize) -> Result<u32, MemError> {
+        match self.read(ram, addr, 4) {
             Ok(val) => {
                 let mut tmp = (val[3] as u32) << 24;
                 tmp |= (val[2] as u32) << 16;
@@ -166,8 +166,8 @@ impl CacheController {
         }
     }
 
-    pub fn read_64 (&mut self, addr: usize) -> Result<u64, MemError> {
-        match self.read(addr, 8) {
+    pub fn read_64 (&mut self, ram: &mut Ram, addr: usize) -> Result<u64, MemError> {
+        match self.read(ram, addr, 8) {
             Ok(val) => {
                 let mut tmp = (val[7] as u64) << 56;
                 tmp |= (val[6] as u64) << 48;
@@ -184,20 +184,20 @@ impl CacheController {
         }
     }
 
-    pub fn write_8 (&mut self, addr: usize, data: u8) -> Result<(), MemError> {
-        self.write(addr, to_byte_vec!(data))
+    pub fn write_8 (&mut self, ram: &mut Ram, addr: usize, data: u8) -> Result<(), MemError> {
+        self.write(ram, addr, to_byte_vec!(data))
     }
 
-    pub fn write_16 (&mut self, addr: usize, data: u16) -> Result<(), MemError> {
-        self.write(addr, to_byte_vec!(data))
+    pub fn write_16 (&mut self, ram: &mut Ram, addr: usize, data: u16) -> Result<(), MemError> {
+        self.write(ram, addr, to_byte_vec!(data))
     }
 
-    pub fn write_32 (&mut self, addr: usize, data: u32) -> Result<(), MemError> {
-        self.write(addr, to_byte_vec!(data))
+    pub fn write_32 (&mut self, ram: &mut Ram, addr: usize, data: u32) -> Result<(), MemError> {
+        self.write(ram, addr, to_byte_vec!(data))
     }
 
-    pub fn write_64 (&mut self, addr: usize, data: u64) -> Result<(), MemError> {
-        self.write(addr, to_byte_vec!(data))
+    pub fn write_64 (&mut self, ram: &mut Ram, addr: usize, data: u64) -> Result<(), MemError> {
+        self.write(ram, addr, to_byte_vec!(data))
     }
 
     pub fn print(&self) {
@@ -209,8 +209,5 @@ impl CacheController {
             c.print();
             i += 1;
         }
-        println!("==========================================");
-        println!("\nRam: \n{:?}", self.ram);
-        println!("==========================================");
     }
 }

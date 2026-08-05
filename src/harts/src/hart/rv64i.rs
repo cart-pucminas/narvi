@@ -1,9 +1,11 @@
+use memory::MemoryRuntimeContext;
+
 use super::{Hart, HartError};
 use crate::util::{get_bits, sign_extend_32, sign_extend_64};
 
 #[allow(dead_code, unused_variables)]
 impl Hart {
-    pub(super) fn execute_rv64i(&mut self, inst: u32) -> Result<(), HartError> {
+    pub(super) fn execute_rv64i(&mut self, inst: u32, mem_ctx: &mut MemoryRuntimeContext) -> Result<(), HartError> {
         let opcode = get_bits(6, 0, inst);
         match opcode {
             0x37 => self.lui(inst),
@@ -11,8 +13,8 @@ impl Hart {
             0x6F => self.jal(inst),
             0x67 => self.jalr(inst),
             0x63 => self.branch(inst),
-            0x03 => self.load(inst),
-            0x23 => self.store(inst),
+            0x03 => self.load(inst, mem_ctx),
+            0x23 => self.store(inst, mem_ctx),
             0x13 => self.al_imm(inst),
             0x33 => self.al(inst),
             0x0F => self.fence(inst),
@@ -36,27 +38,27 @@ impl Hart {
         }
     }
 
-    fn load(&mut self, inst: u32) -> Result<(), HartError> {
+    fn load(&mut self, inst: u32, mem_ctx: &mut MemoryRuntimeContext) -> Result<(), HartError> {
         let funct3 = get_bits(14, 12, inst);
         match funct3 {
-            0 => self.lb(inst),
-            1 => self.lh(inst),
-            2 => self.lw(inst),
-            4 => self.lbu(inst),
-            5 => self.lhu(inst),
-            6 => self.lwu(inst),
-            3 => self.ld(inst),
+            0 => self.lb(inst, mem_ctx),
+            1 => self.lh(inst, mem_ctx),
+            2 => self.lw(inst, mem_ctx),
+            4 => self.lbu(inst, mem_ctx),
+            5 => self.lhu(inst, mem_ctx),
+            6 => self.lwu(inst, mem_ctx),
+            3 => self.ld(inst, mem_ctx),
             _ => Err(HartError::InstructionNotFound(inst as u64)),
         }
     }
 
-    fn store(&mut self, inst: u32) -> Result<(), HartError> {
+    fn store(&mut self, inst: u32, mem_ctx: &mut MemoryRuntimeContext) -> Result<(), HartError> {
         let funct3 = get_bits(14, 12, inst);
         match funct3 {
-            0 => self.sb(inst),
-            1 => self.sh(inst),
-            2 => self.sw(inst),
-            3 => self.sd(inst),
+            0 => self.sb(inst, mem_ctx),
+            1 => self.sh(inst, mem_ctx),
+            2 => self.sw(inst, mem_ctx),
+            3 => self.sd(inst, mem_ctx),
             _ => Err(HartError::InstructionNotFound(inst as u64)),
         }
     }
@@ -308,110 +310,110 @@ impl Hart {
         Ok(())
     }
 
-    fn lb(&mut self, inst: u32) -> Result<(), HartError> {
+    fn lb(&mut self, inst: u32, mem_ctx: &mut MemoryRuntimeContext) -> Result<(), HartError> {
         let rs1 = get_bits(19, 15, inst);
         let rd = get_bits(11, 7, inst) as u8;
         let imm = sign_extend_32(get_bits(31, 20, inst), 12);
         let addr = rs1 + imm;
-        let resulting_value = sign_extend_64(self.l1.get8(addr as usize) as u64, 8);
+        let resulting_value = sign_extend_64(mem_ctx.read_8(addr as usize)? as u64, 8);
         self.set_reg(rd, resulting_value)
     }
 
-    fn lh(&mut self, inst: u32) -> Result<(), HartError> {
+    fn lh(&mut self, inst: u32, mem_ctx: &mut MemoryRuntimeContext) -> Result<(), HartError> {
         let rs1 = get_bits(19, 15, inst);
         let rd = get_bits(11, 7, inst) as u8;
         let imm = sign_extend_32(get_bits(31, 20, inst), 12);
         let addr = rs1 + imm;
-        let resulting_value = sign_extend_64(self.l1.get16(addr as usize) as u64, 16);
+        let resulting_value = sign_extend_64(mem_ctx.read_16(addr as usize)? as u64, 16);
         self.set_reg(rd, resulting_value)
     }
 
-    fn lw(&mut self, inst: u32) -> Result<(), HartError> {
+    fn lw(&mut self, inst: u32, mem_ctx: &mut MemoryRuntimeContext) -> Result<(), HartError> {
         let rs1 = get_bits(19, 15, inst);
         let rd = get_bits(11, 7, inst) as u8;
         let imm = sign_extend_32(get_bits(31, 20, inst), 12);
         let addr = rs1 + imm;
-        let resulting_value = sign_extend_64(self.l1.get32(addr as usize) as u64, 32);
+        let resulting_value = sign_extend_64(mem_ctx.read_32(addr as usize)? as u64, 32);
         self.set_reg(rd, resulting_value)
     }
 
-    fn lwu(&mut self, inst: u32) -> Result<(), HartError> {
+    fn lwu(&mut self, inst: u32, mem_ctx: &mut MemoryRuntimeContext) -> Result<(), HartError> {
         let rs1 = get_bits(19, 15, inst);
         let rd = get_bits(11, 7, inst) as u8;
         let imm = sign_extend_32(get_bits(31, 20, inst), 12);
         let addr = rs1 + imm;
-        let resulting_value = self.l1.get32(addr as usize) as u64;
+        let resulting_value = mem_ctx.read_32(addr as usize)? as u64;
         self.set_reg(rd, resulting_value)
     }
 
-    fn lbu(&mut self, inst: u32) -> Result<(), HartError> {
+    fn lbu(&mut self, inst: u32, mem_ctx: &mut MemoryRuntimeContext) -> Result<(), HartError> {
         let rs1 = get_bits(19, 15, inst);
         let rd = get_bits(11, 7, inst) as u8;
         let imm = sign_extend_32(get_bits(31, 20, inst), 12);
         let addr = rs1 + imm;
-        let resulting_value = self.l1.get8(addr as usize) as u64;
+        let resulting_value = mem_ctx.read_8(addr as usize)? as u64;
         self.set_reg(rd, resulting_value)
     }
 
-    fn lhu(&mut self, inst: u32) -> Result<(), HartError> {
+    fn lhu(&mut self, inst: u32, mem_ctx: &mut MemoryRuntimeContext) -> Result<(), HartError> {
         let rs1 = get_bits(19, 15, inst);
         let rd = get_bits(11, 7, inst) as u8;
         let imm = sign_extend_32(get_bits(31, 20, inst), 12);
         let addr = rs1 + imm;
-        let resulting_value = self.l1.get16(addr as usize) as u64;
+        let resulting_value = mem_ctx.read_16(addr as usize)? as u64;
         self.set_reg(rd, resulting_value)
     }
 
-    fn ld(&mut self, inst: u32) -> Result<(), HartError> {
+    fn ld(&mut self, inst: u32, mem_ctx: &mut MemoryRuntimeContext) -> Result<(), HartError> {
         let rs1 = get_bits(19, 15, inst);
         let rd = get_bits(11, 7, inst) as u8;
         let imm = sign_extend_32(get_bits(31, 20, inst), 12);
         let addr = rs1 + imm;
-        let resulting_value = self.l1.get64(addr as usize);
+        let resulting_value = mem_ctx.read_64(addr as usize)?;
         self.set_reg(rd, resulting_value)
     }
 
-    fn sb(&mut self, inst: u32) -> Result<(), HartError> { 
+    fn sb(&mut self, inst: u32, mem_ctx: &mut MemoryRuntimeContext) -> Result<(), HartError> { 
         let rs1 = get_bits(19, 15, inst);
         let imm_bits = get_bits(11, 7, inst) | ( get_bits(31, 25, inst) << 5 );
         let imm = sign_extend_32(imm_bits, 12);
         let addr = rs1 + imm;
         let rs2 = get_bits(19, 15, inst) as u8;
         let reg_val = self.get_reg(rs2)? as u8;
-        self.l1.set8(addr as usize, reg_val);
+        mem_ctx.write_8(addr as usize, reg_val)?;
         Ok(())
     }
 
-    fn sh(&mut self, inst: u32) -> Result<(), HartError> { 
+    fn sh(&mut self, inst: u32, mem_ctx: &mut MemoryRuntimeContext) -> Result<(), HartError> { 
         let rs1 = get_bits(19, 15, inst);
         let imm_bits = get_bits(11, 7, inst) | ( get_bits(31, 25, inst) << 5 );
         let imm = sign_extend_32(imm_bits, 12);
         let addr = rs1 + imm;
         let rs2 = get_bits(19, 15, inst) as u8;
         let reg_val = self.get_reg(rs2)? as u16;
-        self.l1.set16(addr as usize, reg_val);
+        mem_ctx.write_16(addr as usize, reg_val)?;
         Ok(())
     }
 
-    fn sw(&mut self, inst: u32) -> Result<(), HartError> { 
+    fn sw(&mut self, inst: u32, mem_ctx: &mut MemoryRuntimeContext) -> Result<(), HartError> { 
         let rs1 = get_bits(19, 15, inst);
         let imm_bits = get_bits(11, 7, inst) | ( get_bits(31, 25, inst) << 5 );
         let imm = sign_extend_32(imm_bits, 12);
         let addr = rs1 + imm;
         let rs2 = get_bits(19, 15, inst) as u8;
         let reg_val = self.get_reg(rs2)? as u32;
-        self.l1.set32(addr as usize, reg_val);
+        mem_ctx.write_32(addr as usize, reg_val)?;
         Ok(())
     }
 
-    fn sd(&mut self, inst: u32) -> Result<(), HartError> { 
+    fn sd(&mut self, inst: u32, mem_ctx: &mut MemoryRuntimeContext) -> Result<(), HartError> { 
         let rs1 = get_bits(19, 15, inst);
         let imm_bits = get_bits(11, 7, inst) | ( get_bits(31, 25, inst) << 5 );
         let imm = sign_extend_32(imm_bits, 12);
         let addr = rs1 + imm;
         let rs2 = get_bits(19, 15, inst) as u8;
         let reg_val = self.get_reg(rs2)? as u64;
-        self.l1.set64(addr as usize, reg_val);
+        mem_ctx.write_64(addr as usize, reg_val)?;
         Ok(())
     }
 

@@ -6,19 +6,20 @@ fn main() {
     let associativity = 2;
     let n_sets = 1;
 
-    let l1 = CacheLevel::new(block_size, associativity, n_sets, CachePolicy::LRU);
-    let l2 = CacheLevel::new(block_size, associativity, n_sets, CachePolicy::FIFO);
-    let l3 = CacheLevel::new(block_size, associativity, n_sets, CachePolicy::LFU);
-    
-    let mut ram = Ram::with_size(1024);
+    let mut ram = Ram::new(1024);
     let _ = ram.write_16(0, 300);
 
-    let levels = vec![l1, l2, l3];
-    let mut cache = CacheController::new(levels, ram, block_size);
+    let config = vec![
+        CacheLevelConfig::new(associativity, block_size, n_sets, 1, CacheReplacementPolicy::LRU, CacheWritePolicy::WriteBack),
+        CacheLevelConfig::new(associativity, block_size, n_sets, 1, CacheReplacementPolicy::FIFO, CacheWritePolicy::WriteBack),
+        CacheLevelConfig::new(associativity, block_size, n_sets, 1, CacheReplacementPolicy::LFU, CacheWritePolicy::WriteBack)
+    ];
 
-    let _ = cache.read_8(0);
-    let _ = cache.write_8(0, 1);
-    let _ = cache.write_8(0, 2);
+    let mut cache = CacheController::new(&config).unwrap();
+
+    let _ = cache.read_8(&mut ram, 0);
+    let _ = cache.write_8(&mut ram, 0, 1);
+    let _ = cache.write_8(&mut ram, 0, 2);
 
     cache.print();
 }

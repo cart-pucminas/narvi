@@ -2,7 +2,10 @@ use serde::{Deserialize};
 use rand::{random_range};
 
 use crate::cache_config::{
-    CacheConfig, CacheError, CachePolicy, CacheReturn
+    CacheLevelConfig, 
+    CacheError, 
+    CacheReplacementPolicy, 
+    CacheReturn
 };
 
 macro_rules! mask_from {
@@ -39,7 +42,7 @@ impl CacheLine {
 #[derive(Debug, Clone)]
 pub struct CacheSet {
     cache_lines: Vec<CacheLine>,
-    policy: CachePolicy,
+    policy: CacheReplacementPolicy,
     policy_list: Vec<usize>,    // List used for LRU, LFU and FIFO logic 
     way: usize,
 }
@@ -47,14 +50,14 @@ pub struct CacheSet {
 impl CacheSet {
     pub fn new (block_size: usize, 
                 set_size: usize,
-                policy: CachePolicy
+                policy: CacheReplacementPolicy
         ) -> Self {
 
         let policy_list : Vec<usize> = match policy {
-            CachePolicy::LRU => (0..set_size).rev().collect(),
-            CachePolicy::LFU => vec![0; set_size],
-            CachePolicy::FIFO => vec![],
-            CachePolicy::Random => vec![],
+            CacheReplacementPolicy::LRU => (0..set_size).rev().collect(),
+            CacheReplacementPolicy::LFU => vec![0; set_size],
+            CacheReplacementPolicy::FIFO => vec![],
+            CacheReplacementPolicy::Random => vec![],
         };
 
         CacheSet {
@@ -79,13 +82,13 @@ impl CacheSet {
 
     fn policy_next(&mut self) -> Result<usize, CacheError> {
         match self.policy {
-            CachePolicy::LRU => { 
+            CacheReplacementPolicy::LRU => { 
                 match self.policy_list.last() {
                     Some(&res) => Ok(res),
                     None => Err(CacheError::PolicyFailed)
                 }
             },
-            CachePolicy::LFU => {
+            CacheReplacementPolicy::LFU => {
                 match self.policy_list
                           .iter()
                           .enumerate()
@@ -95,7 +98,7 @@ impl CacheSet {
                     None => Err(CacheError::PolicyFailed)
                 }
             },
-            CachePolicy::FIFO => {
+            CacheReplacementPolicy::FIFO => {
                 match self.policy_list.pop() {
                     Some(res) => Ok(res),
                     None => {
@@ -107,13 +110,13 @@ impl CacheSet {
                     }
                 }
             },
-            CachePolicy::Random => Ok(random_range(0..self.way))
+            CacheReplacementPolicy::Random => Ok(random_range(0..self.way))
         }
     }
 
     fn policy_update(&mut self, idx: usize, insertion: bool) -> Result<(), CacheError> {
         match self.policy {
-            CachePolicy::LRU => { 
+            CacheReplacementPolicy::LRU => { 
                 let old_pos = match self.policy_list.iter().position(|x| *x == idx) {
                     Some(pos) => pos,
                     None => return Err(CacheError::PolicyFailed)
@@ -121,18 +124,18 @@ impl CacheSet {
                 self.policy_list.remove(old_pos);
                 self.policy_list.insert(0, idx);
             },
-            CachePolicy::LFU => {
+            CacheReplacementPolicy::LFU => {
                 if insertion {  // Reset on new block
                     self.policy_list[idx] = 0;
                 }
                 self.policy_list[idx] += 1;
             },
-            CachePolicy::FIFO => {
+            CacheReplacementPolicy::FIFO => {
                 if insertion {
                     self.policy_list.insert(0, idx);
                 }
             },
-            CachePolicy::Random => (),
+            CacheReplacementPolicy::Random => (),
         }
         Ok(())
     }
@@ -146,9 +149,8 @@ impl CacheSet {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(from = "CacheConfig")]
-pub struct CacheLevel{
-
+#[serde(from = "CacheLevelConfig")]
+pub struct CacheLevel {
     #[serde(skip)]
     offset_mask: usize,
     #[serde(skip)]
@@ -178,8 +180,8 @@ pub struct CacheLevel{
     block_size: usize,
 }
 
-impl From<CacheConfig> for CacheLevel {
-    fn from(config: CacheConfig) -> Self {
+impl From<CacheLevelConfig> for CacheLevel {
+    fn from(config: CacheLevelConfig) -> Self {
 
         let offset_size = config.block_size.ilog2() as usize;
         let index_size = config.n_blocks.ilog2() as usize;
@@ -190,7 +192,11 @@ impl From<CacheConfig> for CacheLevel {
         let tag_mask = (offset_mask | index_mask) ^ usize::MAX; // remaining bits
 
         let n_sets = config.n_blocks / config.set_size;
-        let base_set = CacheSet::new(config.block_size, config.set_size, config.policy);
+        let base_set = CacheSet::new(
+            config.block_size, 
+            config.set_size, 
+            config.replacement_policy
+        );
 
         CacheLevel {
             index_mask, 
@@ -210,7 +216,7 @@ impl From<CacheConfig> for CacheLevel {
 }
 
 impl CacheLevel {
-    pub fn new(block_size: usize, associativity: usize, n_sets: usize, policy: CachePolicy) -> Self {
+    pub fn new(block_size: usize, associativity: usize, n_sets: usize, policy: CacheReplacementPolicy) -> Self {
         let n_blocks = n_sets * associativity;
 
         let offset_size = block_size.ilog2() as usize;          // byte offset

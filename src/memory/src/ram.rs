@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum RamError {
     OutOfBounds
 }
@@ -9,11 +9,7 @@ pub struct Ram(Vec<u8>);
 
 impl Ram {
 
-    pub fn new(content: Vec<u8>) -> Self {
-        Ram(content)
-    }
-
-    pub fn with_size(size: usize) -> Self {
+    pub fn new(size: usize) -> Self {
         Ram(vec![0; size])
     }
 

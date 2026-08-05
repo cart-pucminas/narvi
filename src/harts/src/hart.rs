@@ -9,7 +9,7 @@ use std::{
     }
 };
 
-use memory::CacheL1;
+use memory::{CacheController, MemError, MemoryRuntimeContext};
 
 use serde::{Serialize, Deserialize};
 
@@ -42,6 +42,7 @@ pub enum HartError {
     InstructionAddressMisaligned,
     FLENMisaligned,
     FLENTooShort,
+    MemError(MemError)
 }
 
 impl HartError {
@@ -54,6 +55,8 @@ impl HartError {
             Self::InstructionAddressMisaligned => "InstructionAddressMisaligned".to_string(),
             Self::FLENMisaligned => "FLENMisalligned".to_string(),
             Self::FLENTooShort => "FLENTooShort".to_string(),
+            // TODO: better string for this
+            Self::MemError(mem_err) => "Memory Error".to_string()
         }
     }
 }
@@ -106,11 +109,6 @@ pub struct Hart {
     #[serde(skip)]
     pc: u64,
 
-    // Memory
-    #[serde(skip)]
-    l1: CacheL1,
-    l1_size: usize,
-
     // __Floating Point__
     #[serde(skip)]
     f_regs: FRegs,
@@ -128,8 +126,6 @@ impl From<HartConfig> for Hart {
             extensions: config.extensions,
             regs: vec![0; 32],
             pc: 0,
-            l1: CacheL1::new(config.l1_size),
-            l1_size: config.l1_size,
             f_regs: FRegs::new(config.extensions.f, config.extensions.d),
             flen: match (config.extensions.f, config.extensions.d) {
                 (true, false) => 32,
@@ -142,14 +138,18 @@ impl From<HartConfig> for Hart {
     }
 }
 
+impl From<MemError> for HartError {
+    fn from(value: MemError) -> Self {
+        Self::MemError(value) 
+    }
+}
+
 impl Hart {
-    pub fn from_extensions(extensions: &Extensions, cache_size: usize) -> Hart {
+    pub fn from_extensions(extensions: &Extensions) -> Hart {
         Hart {
             extensions: *extensions,
             regs: vec![0; 32],
             pc: 0,
-            l1: CacheL1::new(cache_size),
-            l1_size: cache_size,
             f_regs: FRegs::new(extensions.f, extensions.d),
             flen: match (extensions.f, extensions.d) {
                 (true, false) => 32,
@@ -332,34 +332,25 @@ impl Hart {
     }
 
     /// Simulates full pipeline execution for one instruction
-    pub fn update(&mut self) -> Result<bool, HartError> {
-        let inst = self.l1.get32(self.pc as usize);
+    pub fn update(&mut self, mem_ctx: &mut MemoryRuntimeContext) -> Result<bool, HartError> {
+        let inst = mem_ctx.read_32(self.pc as usize)?;
 
-        let mut result = self.execute_rv64i(inst);
+        let mut result = self.execute_rv64i(inst, mem_ctx);
 
         if matches!(result, Err(HartError::InstructionNotFound(_))) && self.extensions.m {
             result = self.execute_m(inst);
         }
 
         if matches!(result, Err(HartError::InstructionNotFound(_))) && self.extensions.f {
-            result = self.execute_f(inst);
+            result = self.execute_f(inst, mem_ctx);
         }
 
         if matches!(result, Err(HartError::InstructionNotFound(_))) && self.extensions.d {
-            result = self.execute_d(inst);
+            result = self.execute_d(inst, mem_ctx);
         }
 
         self.pc = self.pc + 4;
         
         result.map(|_| self.break_e)
-    }
-
-    // TODO: temporary function for quick simulation test, should not exist
-    pub fn overwrite_l1(&mut self, content: Vec<u8>) {
-        self.l1 = CacheL1::with_content(self.l1_size, content);
-    }
-
-    pub fn l1_snapshot(&self) -> Vec<u8> {
-        self.l1.clone_content()
     }
 }
