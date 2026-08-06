@@ -1,7 +1,7 @@
-use serde::{Deserialize};
-use rand::{random_range};
+use serde::Deserialize;
+use rand::random_range;
 
-use crate::cache_config::{
+use super::{
     CacheLevelConfig, 
     CacheError, 
     CacheReplacementPolicy, 

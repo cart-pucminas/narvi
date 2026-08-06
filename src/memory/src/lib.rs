@@ -1,20 +1,17 @@
 mod ram;
-mod cache_config;
-mod cache_level;
-mod cache_controller;
+mod cache;
 
 use ram::RamError;
-use cache_config::CacheError;
 
 pub use ram::Ram;
-pub use cache_config::CacheReturn;
-pub use cache_config::{
+pub use cache::{
+    CacheController,
+    CacheError,
+    CacheLevel,
     CacheLevelConfig, 
     CacheReplacementPolicy,
     CacheWritePolicy
 };
-pub use cache_level::CacheLevel;
-pub use cache_controller::CacheController;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum MemError {

@@ -1,13 +1,17 @@
-use serde::Deserialize;
+use serde::{
+    Serialize,
+    Deserialize
+};
+
+use super::{
+    CacheLevel,
+    CacheLevelConfig,
+    CacheReturn
+};
 
 use crate::{
-    Ram, 
-    MemError,
-    cache_config::{
-        CacheReturn,
-        CacheLevelConfig
-    },
-    cache_level::CacheLevel
+    Ram,
+    MemError
 };
 
 macro_rules! to_byte_vec {
