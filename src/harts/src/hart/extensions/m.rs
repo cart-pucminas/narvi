@@ -220,7 +220,7 @@ mod m_tests {
 
     #[test]
     fn mul1() -> Result<(), HartError> {
-        let mut hart = Hart::from_extensions(&EXTENSIONS, 0);
+        let mut hart = Hart::from_extensions(&EXTENSIONS);
 
         hart.set_reg(Reg::s0 as u8, u64::MAX)?;
         hart.set_reg(Reg::s1 as u8, u64::MAX)?;
@@ -235,7 +235,7 @@ mod m_tests {
 
     #[test]
     fn mul2() -> Result<(), HartError> {
-        let mut hart = Hart::from_extensions(&EXTENSIONS, 0);
+        let mut hart = Hart::from_extensions(&EXTENSIONS);
 
         hart.set_reg(Reg::s0 as u8, -1i64 as u64)?;
         hart.set_reg(Reg::s1 as u8, -1i64 as u64)?;
@@ -250,7 +250,7 @@ mod m_tests {
 
     #[test]
     fn mulh1() -> Result<(), HartError> {
-        let mut hart = Hart::from_extensions(&EXTENSIONS, 0);
+        let mut hart = Hart::from_extensions(&EXTENSIONS);
 
         hart.set_reg(Reg::s0 as u8, 0x80000000000000)?;
         hart.set_reg(Reg::s1 as u8, (-0x80000000000000i64) as u64)?;
@@ -264,7 +264,7 @@ mod m_tests {
 
     #[test]
     fn mulhsu1() -> Result<(), HartError> {
-        let mut hart = Hart::from_extensions(&EXTENSIONS, 0);
+        let mut hart = Hart::from_extensions(&EXTENSIONS);
 
         hart.set_reg(Reg::s0 as u8, 0x80000000000000)?;
         hart.set_reg(Reg::s1 as u8, (-0x80000000000000i64) as u64)?;
@@ -279,7 +279,7 @@ mod m_tests {
 
     #[test]
     fn mulhsu2() -> Result<(), HartError> {
-        let mut hart = Hart::from_extensions(&EXTENSIONS, 0);
+        let mut hart = Hart::from_extensions(&EXTENSIONS);
 
         hart.set_reg(Reg::s0 as u8, (-0x80000000000000i64) as u64)?;
         hart.set_reg(Reg::s1 as u8, 0x80000000000000)?;
@@ -294,7 +294,7 @@ mod m_tests {
 
     #[test]
     fn mulhu1() -> Result<(), HartError> {
-        let mut hart = Hart::from_extensions(&EXTENSIONS, 0);
+        let mut hart = Hart::from_extensions(&EXTENSIONS);
 
         hart.set_reg(Reg::s0 as u8, 0x80000000000000)?;
         hart.set_reg(Reg::s1 as u8, (-0x80000000000000i64) as u64)?;
@@ -309,7 +309,7 @@ mod m_tests {
 
     #[test]
     fn div1() -> Result<(), HartError> {
-        let mut hart = Hart::from_extensions(&EXTENSIONS, 0);
+        let mut hart = Hart::from_extensions(&EXTENSIONS);
 
         hart.set_reg(Reg::s0 as u8, 0x80000000000000)?;
         hart.set_reg(Reg::s1 as u8, (-0x80000000000000i64) as u64)?;
@@ -324,7 +324,7 @@ mod m_tests {
 
     #[test]
     fn divu1() -> Result<(), HartError> {
-        let mut hart = Hart::from_extensions(&EXTENSIONS, 0);
+        let mut hart = Hart::from_extensions(&EXTENSIONS);
 
         hart.set_reg(Reg::s0 as u8, (-0x80000000000000i64) as u64)?;
         hart.set_reg(Reg::s1 as u8, 0xF)?;
@@ -339,7 +339,7 @@ mod m_tests {
 
     #[test]
     fn rem1() -> Result<(), HartError> {
-        let mut hart = Hart::from_extensions(&EXTENSIONS, 0);
+        let mut hart = Hart::from_extensions(&EXTENSIONS);
 
         hart.set_reg(Reg::s0 as u8, 0x5)?;
         hart.set_reg(Reg::s1 as u8, 0x4)?;
@@ -354,7 +354,7 @@ mod m_tests {
 
     #[test]
     fn rem2() -> Result<(), HartError> {
-        let mut hart = Hart::from_extensions(&EXTENSIONS, 0);
+        let mut hart = Hart::from_extensions(&EXTENSIONS);
 
         hart.set_reg(Reg::s0 as u8, (-0x5i64) as u64)?;
         hart.set_reg(Reg::s1 as u8, 0x4)?;
@@ -369,7 +369,7 @@ mod m_tests {
 
     #[test]
     fn rem3() -> Result<(), HartError> {
-        let mut hart = Hart::from_extensions(&EXTENSIONS, 0);
+        let mut hart = Hart::from_extensions(&EXTENSIONS);
 
         hart.set_reg(Reg::s0 as u8, 0x5)?;
         hart.set_reg(Reg::s1 as u8, (-0x4i64) as u64)?;
@@ -384,7 +384,7 @@ mod m_tests {
 
     #[test]
     fn mulw1() -> Result<(), HartError> {
-        let mut hart = Hart::from_extensions(&EXTENSIONS, 0);
+        let mut hart = Hart::from_extensions(&EXTENSIONS);
 
         hart.set_reg(Reg::s0 as u8, 0x10000)?;
         hart.set_reg(Reg::s1 as u8, 0x10000)?;
@@ -399,7 +399,7 @@ mod m_tests {
 
     #[test]
     fn mulw2() -> Result<(), HartError> {
-        let mut hart = Hart::from_extensions(&EXTENSIONS, 0);
+        let mut hart = Hart::from_extensions(&EXTENSIONS);
 
         hart.set_reg(Reg::s0 as u8, 0x1000)?;
         hart.set_reg(Reg::s1 as u8, (-0x1000i64) as u64)?;
@@ -414,7 +414,7 @@ mod m_tests {
 
     #[test]
     fn divw1() -> Result<(), HartError> {
-        let mut hart = Hart::from_extensions(&EXTENSIONS, 0);
+        let mut hart = Hart::from_extensions(&EXTENSIONS);
 
         hart.set_reg(Reg::s0 as u8, 0x1)?;
         hart.set_reg(Reg::s1 as u8, (-0x1i64) as u64)?;
@@ -429,7 +429,7 @@ mod m_tests {
 
     #[test]
     fn divw2() -> Result<(), HartError> {
-        let mut hart = Hart::from_extensions(&EXTENSIONS, 0);
+        let mut hart = Hart::from_extensions(&EXTENSIONS);
 
         hart.set_reg(Reg::s0 as u8, 0xFFFFFFFF00000004)?;
         hart.set_reg(Reg::s1 as u8, 0xFFFFFFFF00000002)?;
@@ -444,7 +444,7 @@ mod m_tests {
 
     #[test]
     fn divuw1() -> Result<(), HartError> {
-        let mut hart = Hart::from_extensions(&EXTENSIONS, 0);
+        let mut hart = Hart::from_extensions(&EXTENSIONS);
 
         hart.set_reg(Reg::s0 as u8, (-0x1i64) as u64)?;
         hart.set_reg(Reg::s1 as u8, 0x1)?;
@@ -459,7 +459,7 @@ mod m_tests {
 
     #[test]
     fn divuw2() -> Result<(), HartError> {
-        let mut hart = Hart::from_extensions(&EXTENSIONS, 0);
+        let mut hart = Hart::from_extensions(&EXTENSIONS);
 
         hart.set_reg(Reg::s0 as u8, 0xFFFFFFFFFFFFFFFF)?;
         hart.set_reg(Reg::s1 as u8, 0xFFFFFFFF00000001)?;
@@ -474,7 +474,7 @@ mod m_tests {
 
     #[test]
     fn remw1() -> Result<(), HartError> {
-        let mut hart = Hart::from_extensions(&EXTENSIONS, 0);
+        let mut hart = Hart::from_extensions(&EXTENSIONS);
 
         hart.set_reg(Reg::s0 as u8, (-0x5i64) as u64)?;
         hart.set_reg(Reg::s1 as u8, 0x4)?;
@@ -489,7 +489,7 @@ mod m_tests {
 
     #[test]
     fn remw2() -> Result<(), HartError> {
-        let mut hart = Hart::from_extensions(&EXTENSIONS, 0);
+        let mut hart = Hart::from_extensions(&EXTENSIONS);
 
         hart.set_reg(Reg::s0 as u8, (-0x5i64) as u64)?;
         hart.set_reg(Reg::s1 as u8, 0xFFFFFFFF00000004)?;
@@ -504,7 +504,7 @@ mod m_tests {
 
     #[test]
     fn remuw1() -> Result<(), HartError> {
-        let mut hart = Hart::from_extensions(&EXTENSIONS, 0);
+        let mut hart = Hart::from_extensions(&EXTENSIONS);
 
         hart.set_reg(Reg::s0 as u8, 0xFFFFFFFF00000005)?;
         hart.set_reg(Reg::s1 as u8, 0xFFFFFFFF00000004)?;
