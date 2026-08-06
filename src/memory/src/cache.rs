@@ -1,5 +1,6 @@
 mod cache_controller;
 mod cache_level;
+mod test;
 
 pub use cache_controller::CacheController;
 pub use cache_level::CacheLevel;
