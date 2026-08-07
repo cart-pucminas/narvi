@@ -7,7 +7,6 @@ pub use ram::Ram;
 pub use cache::{
     CacheController,
     CacheError,
-    CacheLevel,
     CacheLevelConfig, 
     CacheReplacementPolicy,
     CacheWritePolicy
