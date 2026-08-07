@@ -4,7 +4,7 @@ use serde::{
 };
 
 use super::{
-    CacheLevel,
+    cache_level::CacheLevel,
     CacheLevelConfig,
     CacheReturn
 };

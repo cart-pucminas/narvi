@@ -165,7 +165,7 @@ impl CacheSet {
 
 #[derive(Debug, Deserialize)]
 #[serde(from = "CacheLevelConfig")]
-pub(crate) struct CacheLevel {
+pub(super) struct CacheLevel {
     #[serde(skip)]
     offset_mask: usize,
     #[serde(skip)]
@@ -421,7 +421,7 @@ impl CacheLevel {
 #[cfg(test)]
 mod test {
     use super::*;
-
+    
     #[test]
     fn line_update_success() {
         let mut cache_line = CacheLine::new(4);
