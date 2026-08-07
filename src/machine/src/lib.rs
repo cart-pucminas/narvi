@@ -5,7 +5,13 @@ use harts::hart::{
 };
 
 use memory::{
-    CacheController, CacheLevel, CacheLevelConfig, CacheReplacementPolicy, CacheWritePolicy, MemError, MemoryRuntimeContext, Ram
+    CacheController,
+    CacheLevelConfig,
+    CacheReplacementPolicy,
+    CacheWritePolicy,
+    MemError,
+    MemoryRuntimeContext,
+    Ram
 };
 
 use serde::{
@@ -62,12 +68,18 @@ pub struct Machine {
 }
 
 impl Machine {
-    pub fn new(config: &MachineConfig, asm: Vec<u8>) -> Result<Self, MachineError>{
+    pub fn new(
+        config: &MachineConfig, 
+        asm: Vec<u8>
+    ) -> Result<Self, MachineError>{
         if !config.is_valid() {
             return Err(MachineError::InvalidConfig)
         }
 
-        let mut installed_harts = vec![Hart::from_extensions(&config.extensions); config.hart_count as usize];
+        let mut installed_harts = vec![
+            Hart::from_extensions(&config.extensions); 
+            config.hart_count as usize
+        ];
 
         let mem_ctx = MemoryRuntimeContext::new(
             Ram::new(config.ram_size),
