@@ -15,16 +15,16 @@ macro_rules! mask_from {
 }
 
 #[derive(Debug, Clone)]
-pub struct CacheLine {
+struct CacheLine {
     pub bytes: Vec<u8>
 }
 
 impl CacheLine {
-    pub fn new(block_size: usize) -> Self {
+    fn new(block_size: usize) -> Self {
         CacheLine { bytes: vec![0; block_size] }
     }
 
-    pub fn update(&mut self, vec: Vec<u8>, offset: usize) -> Result<(), CacheError> {
+    fn update(&mut self, vec: Vec<u8>, offset: usize) -> Result<(), CacheError> {
         let len = std::cmp::min(self.bytes.len(), vec.len());
 
         if let Some(slice) = self.bytes.get_mut(offset..len+offset) {
@@ -34,13 +34,13 @@ impl CacheLine {
         Err(CacheError::OutOfBounds)
     }
 
-    pub fn print(&self) {
+    fn print(&self) {
         println!("Line: {:?}", self.bytes);
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct CacheSet {
+struct CacheSet {
     cache_lines: Vec<CacheLine>,
     policy: CacheReplacementPolicy,
     policy_list: Vec<usize>,    // List used for LRU, LFU and FIFO logic 
@@ -48,10 +48,11 @@ pub struct CacheSet {
 }
 
 impl CacheSet {
-    pub fn new (block_size: usize, 
-                set_size: usize,
-                policy: CacheReplacementPolicy
-        ) -> Self {
+    fn new (
+        block_size: usize, 
+        set_size: usize,
+        policy: CacheReplacementPolicy
+    ) -> Self {
 
         let policy_list : Vec<usize> = match policy {
             CacheReplacementPolicy::LRU => (0..set_size).rev().collect(),
@@ -68,15 +69,24 @@ impl CacheSet {
         }
     }
     
-    pub fn insert(&mut self, data: Vec<u8>, replace_i: usize) -> Result<usize, CacheError> {
+    fn insert(
+        &mut self, 
+        data: Vec<u8>, 
+        replace_i: usize
+    ) -> Result<usize, CacheError> {
         self.cache_lines[replace_i].update(data, 0)?;
         self.policy_update(replace_i, true)?;
         Ok(replace_i)
     }
 
-    pub fn update(&mut self, data: Vec<u8>, offset: usize, set: usize) -> Result<(), CacheError> {
-        self.cache_lines[set].update(data, offset)?;
-        self.policy_update(set, false)?;
+    fn update(
+        &mut self, 
+        data: Vec<u8>, 
+        offset: usize, 
+        i: usize
+    ) -> Result<(), CacheError> {
+        self.cache_lines[i].update(data, offset)?;
+        self.policy_update(i, false)?;
         Ok(())
     }
 
@@ -114,13 +124,18 @@ impl CacheSet {
         }
     }
 
-    fn policy_update(&mut self, idx: usize, insertion: bool) -> Result<(), CacheError> {
+    fn policy_update(
+        &mut self, 
+        idx: usize, 
+        insertion: bool
+    ) -> Result<(), CacheError> {
         match self.policy {
             CacheReplacementPolicy::LRU => { 
-                let old_pos = match self.policy_list.iter().position(|x| *x == idx) {
-                    Some(pos) => pos,
-                    None => return Err(CacheError::PolicyFailed)
-                };
+                let old_pos = 
+                    match self.policy_list.iter().position(|x| *x == idx) {
+                        Some(pos) => pos,
+                        None => return Err(CacheError::PolicyFailed)
+                    };
                 self.policy_list.remove(old_pos);
                 self.policy_list.insert(0, idx);
             },
@@ -150,7 +165,7 @@ impl CacheSet {
 
 #[derive(Debug, Deserialize)]
 #[serde(from = "CacheLevelConfig")]
-pub struct CacheLevel {
+pub(crate) struct CacheLevel {
     #[serde(skip)]
     offset_mask: usize,
     #[serde(skip)]
@@ -189,7 +204,8 @@ impl From<CacheLevelConfig> for CacheLevel {
         // Create masks
         let offset_mask = mask_from!(offset_size, 0);
         let index_mask = mask_from!(index_size, offset_size);
-        let tag_mask = (offset_mask | index_mask) ^ usize::MAX; // remaining bits
+        // remaining bits
+        let tag_mask = (offset_mask | index_mask) ^ usize::MAX; 
 
         let n_sets = config.n_blocks / config.set_size;
         let base_set = CacheSet::new(
@@ -216,16 +232,22 @@ impl From<CacheLevelConfig> for CacheLevel {
 }
 
 impl CacheLevel {
-    pub fn new(block_size: usize, associativity: usize, n_sets: usize, policy: CacheReplacementPolicy) -> Self {
+    pub fn new(
+        block_size: usize,
+        associativity: usize,
+        n_sets: usize,
+        policy: CacheReplacementPolicy
+    ) -> Self {
         let n_blocks = n_sets * associativity;
 
-        let offset_size = block_size.ilog2() as usize;          // byte offset
+        let offset_size = block_size.ilog2() as usize; // byte offset
         let index_size = n_blocks.ilog2() as usize; 
 
         // Create masks
         let offset_mask = mask_from!(offset_size, 0);
         let index_mask = mask_from!(index_size, offset_size);
-        let tag_mask = (offset_mask | index_mask) ^ usize::MAX; // remaining bits
+        // remaining bits
+        let tag_mask = (offset_mask | index_mask) ^ usize::MAX; 
 
         let base_set = CacheSet::new(block_size, associativity, policy);
 
@@ -245,12 +267,15 @@ impl CacheLevel {
         }
     }
 
-    fn get_old (&mut self, index: usize, set_i: usize) -> Option<(usize, Vec<u8>)> {
+    fn get_old (
+        &mut self,
+        index: usize,
+        set_i: usize
+    ) -> Option<(usize, Vec<u8>)> {
+        let set = self.sets.get(index)?;
+        let line = set.cache_lines.get(set_i)?;
 
-        let cache_lines = self.sets.get(index)?;
-        let set = cache_lines.cache_lines.get(set_i)?;
-
-        let old_block = set.bytes.clone();
+        let old_block = line.bytes.clone();
         
         let tag = self.tags.get(index + set_i)? << self.tag_start;
         let old_addr = tag | (index << self.index_start);
@@ -259,13 +284,16 @@ impl CacheLevel {
     }
 
     // Used for new blocks. Does not set the dirty bit
-    pub fn insert(&mut self, addr: usize, data: Vec<u8>) -> Result<Option<(usize, Vec<u8>)>, CacheError> {
+    pub fn insert(
+        &mut self, 
+        addr: usize,
+        data: Vec<u8>
+    ) -> Result<Option<(usize, Vec<u8>)>, CacheError> {
         let tmp = (addr & self.index_mask) >> self.index_start;
         let idx = tmp % self.n_sets;
 
         match self.sets.get(idx) {
             Some(_) => {
-
                 let tag = (addr & self.tag_mask) >> self.tag_start;
 
                 let i = match self.sets[idx].policy_next() {
@@ -294,7 +322,11 @@ impl CacheLevel {
     }
 
     // Used for blocks that are already in the cache. Sets the dirty bit
-    pub fn update(&mut self, addr: usize, data: Vec<u8>) -> Result<(), CacheError> {
+    pub fn update(
+        &mut self,
+        addr: usize,
+        data: Vec<u8>
+    ) -> Result<(), CacheError> {
         let tmp = (addr & self.index_mask) >> self.index_start;
         let idx = tmp % self.n_sets;
 
@@ -310,19 +342,24 @@ impl CacheLevel {
                             self.dirty[idx] = true;
                             return Ok(());
                         },
-                        (None, _) | (_, None) => return Err(CacheError::OutOfBounds),
+                        (None, _) | (_, None) => 
+                            return Err(CacheError::OutOfBounds),
                         _ => (),
                     }
                 }
-                Err(CacheError::UnreachableState) // Updated always comes after a find
+                // Updated always comes after a find
+                Err(CacheError::UnreachableState) 
             },
             None => Err(CacheError::OutOfBounds)
         }
     }
 
-    // Returns a amount of bytes in this cache level
-    pub fn read(&mut self, addr: usize, bytes: usize) -> Result<CacheReturn, CacheError> {
-
+    // Returns an amount of bytes in this cache level
+    pub fn read(
+        &mut self, 
+        addr: usize,
+        bytes: usize
+    ) -> Result<CacheReturn, CacheError> {
         let tmp = (addr & self.index_mask) >> self.index_start;
         let idx = tmp % self.n_sets;
         let tag = (addr & self.tag_mask) >> self.tag_start;
@@ -344,7 +381,10 @@ impl CacheLevel {
         Ok(CacheReturn::Miss)
     }
 
-    pub fn get_block(&mut self, addr: usize) -> Result<CacheReturn, CacheError> {
+    pub fn get_block(
+        &mut self,
+        addr: usize
+    ) -> Result<CacheReturn, CacheError> {
         self.read(addr, self.block_size)
     }
 
@@ -375,5 +415,70 @@ impl CacheLevel {
             set.print();
             i+=1;
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn line_update_success() {
+        let mut cache_line = CacheLine::new(4);
+        cache_line.update(
+            vec![0xEE, 0xFF],
+            1
+        ).unwrap();
+        let mut iterator = cache_line.bytes.iter();
+        assert_eq!(iterator.next(), Some(&0x00u8));
+        assert_eq!(iterator.next(), Some(&0xEEu8));
+        assert_eq!(iterator.next(), Some(&0xFFu8));
+        assert_eq!(iterator.next(), Some(&0x00u8));
+    }
+
+    #[test]
+    #[should_panic(expected = "OutOfBounds")]
+    fn line_update_fail() {
+        let mut cache_line = CacheLine::new(4);
+        cache_line.update(
+            vec![0xEE, 0xFF],
+            3
+        ).unwrap();
+    }
+
+    #[test]
+    fn set_lru() {
+        let mut cache_set = CacheSet::new(4, 4, CacheReplacementPolicy::LRU);
+        cache_set.update(vec![0], 0, 1).unwrap(); 
+        cache_set.update(vec![0], 0, 3).unwrap(); 
+        cache_set.update(vec![0], 0, 1).unwrap(); 
+        cache_set.update(vec![0], 0, 0).unwrap(); 
+        cache_set.update(vec![0], 0, 2).unwrap(); 
+        assert_eq!(cache_set.policy_next(), Ok(3usize));
+    }
+
+    #[test]
+    fn set_lfu() {
+        let mut cache_set = CacheSet::new(4, 4, CacheReplacementPolicy::LFU);
+        cache_set.update(vec![0], 0, 2).unwrap(); 
+        cache_set.update(vec![0], 0, 1).unwrap(); 
+        cache_set.update(vec![0], 0, 3).unwrap(); 
+        cache_set.update(vec![0], 0, 3).unwrap(); 
+        cache_set.update(vec![0], 0, 0).unwrap(); 
+        cache_set.update(vec![0], 0, 1).unwrap(); 
+        cache_set.update(vec![0], 0, 3).unwrap(); 
+        cache_set.update(vec![0], 0, 1).unwrap(); 
+        cache_set.update(vec![0], 0, 2).unwrap(); 
+        assert_eq!(cache_set.policy_next(), Ok(0usize));
+    }
+
+    #[test]
+    fn set_fifo() {
+        let mut cache_set = CacheSet::new(4, 4, CacheReplacementPolicy::FIFO);
+        cache_set.insert(vec![0], 1).unwrap(); 
+        cache_set.insert(vec![0], 3).unwrap(); 
+        cache_set.insert(vec![0], 0).unwrap(); 
+        cache_set.insert(vec![0], 2).unwrap(); 
+        assert_eq!(cache_set.policy_next(), Ok(1usize));
     }
 }
