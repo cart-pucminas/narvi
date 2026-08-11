@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use rand::random_range;
+use rand::{rand_core::block, random_range};
 
 use super::{
     CacheLevelConfig, 
@@ -14,9 +14,16 @@ macro_rules! mask_from {
     };
 }
 
+macro_rules! idx2to1 {
+    ($i:expr, $j:expr, $cols:expr) => {
+        $j + $i * $cols 
+    };
+}
+
+
 #[derive(Debug, Clone)]
 struct CacheLine {
-    pub bytes: Vec<u8>
+    bytes: Vec<u8>
 }
 
 impl CacheLine {
@@ -163,6 +170,13 @@ impl CacheSet {
     }
 }
 
+#[derive(Debug, Default, Clone)]
+pub struct CacheStats {
+    pub hits: usize,
+    pub misses: usize,
+    pub evictions: usize,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(from = "CacheLevelConfig")]
 pub(super) struct CacheLevel {
@@ -193,11 +207,12 @@ pub(super) struct CacheLevel {
     n_sets: usize,
     
     block_size: usize,
+
+    stats: CacheStats
 }
 
 impl From<CacheLevelConfig> for CacheLevel {
     fn from(config: CacheLevelConfig) -> Self {
-
         let offset_size = config.block_size.ilog2() as usize;
         let index_size = config.n_blocks.ilog2() as usize;
 
@@ -226,7 +241,8 @@ impl From<CacheLevelConfig> for CacheLevel {
             dirty: vec![false ; config.n_blocks], 
             way: config.set_size,
             n_sets,
-            block_size: config.block_size
+            block_size: config.block_size,
+            stats: Default::default()
         }
     }
 }
@@ -241,7 +257,7 @@ impl CacheLevel {
         let n_blocks = n_sets * associativity;
 
         let offset_size = block_size.ilog2() as usize; // byte offset
-        let index_size = n_blocks.ilog2() as usize; 
+        let index_size = n_sets.ilog2() as usize; 
 
         // Create masks
         let offset_mask = mask_from!(offset_size, 0);
@@ -263,7 +279,8 @@ impl CacheLevel {
             dirty: vec![false ; n_blocks], 
             way: associativity,
             n_sets,
-            block_size
+            block_size,
+            stats: Default::default()
         }
     }
 
@@ -277,7 +294,11 @@ impl CacheLevel {
 
         let old_block = line.bytes.clone();
         
-        let tag = self.tags.get(index + set_i)? << self.tag_start;
+        let tag = { 
+            let block_idx = idx2to1!(index, set_i, self.way);
+            self.tags.get(block_idx)? << self.tag_start
+        };
+
         let old_addr = tag | (index << self.index_start);
 
         Some((old_addr, old_block))
@@ -303,17 +324,22 @@ impl CacheLevel {
 
                 let mut res: Option<(usize, Vec<u8>)> = None;
 
-                if self.dirty[idx + i] {
-                    res = Some(self.get_old(idx, i)
-                        .ok_or(CacheError::OutOfBounds)?);
+                let block_idx = idx2to1!(idx, i, self.way);
 
-                    self.dirty[idx + i] = false;
+                if self.valid[block_idx] {
+                    self.stats.evictions += 1;
+
+                    if self.dirty[block_idx] {
+                        res = Some(self.get_old(idx, i)
+                            .ok_or(CacheError::OutOfBounds)?);
+                        self.dirty[block_idx] = false;
+                    }
                 }
 
                 self.sets[idx].insert(data, i)?;
 
-                self.tags[idx + i] = tag;
-                self.valid[idx + i] = true;
+                self.tags[block_idx] = tag;
+                self.valid[block_idx] = true;
 
                 Ok(res)
             },
@@ -336,10 +362,14 @@ impl CacheLevel {
                 let offset = addr & self.offset_mask;
 
                 for i in 0..self.way {
-                    match (self.valid.get(idx + i), self.tags.get(idx + i)) {
+                    let block_idx = idx2to1!(idx, i, self.way);
+
+                    let control_bits = (self.valid.get(block_idx), self.tags.get(block_idx));
+
+                    match control_bits {
                         (Some(&true), Some(&value)) if value == tag => {
                             self.sets[idx].update(data, offset, i)?;
-                            self.dirty[idx] = true;
+                            self.dirty[block_idx] = true;
                             return Ok(());
                         },
                         (None, _) | (_, None) => 
@@ -365,11 +395,16 @@ impl CacheLevel {
         let tag = (addr & self.tag_mask) >> self.tag_start;
         
         for i in 0..self.way {
-            match (self.valid.get(idx + i), self.tags.get(idx + i)) {
+            let control_bits = {
+                let block_idx = idx2to1!(idx, i, self.way);
+                (self.valid.get(block_idx), self.tags.get(block_idx))
+            };
+
+            match control_bits {
                 (Some(&true), Some(&value)) if value == tag => {
                     let offset = addr & self.offset_mask;
                     let block = self.sets[idx].cache_lines[i].clone();
-                    let slice = &block.bytes[offset..bytes];
+                    let slice = &block.bytes[offset..offset + bytes];
 
                     self.sets[idx].policy_update(i, false)?;
                     return Ok(CacheReturn::Hit(slice.to_vec()))
@@ -393,11 +428,17 @@ impl CacheLevel {
         let tmp = (addr & self.index_mask) >> self.index_start;
         let idx = tmp % self.n_sets;
         let tag = (addr & self.tag_mask) >> self.tag_start;
+
         
         for i in 0..self.way {
-            match (self.valid.get(idx + i), self.tags.get(idx + i)) {
-                (Some(&true), Some(&value)) if value == tag => {
+            let control_bits = {
+                let block_idx = idx2to1!(idx, i, self.way);
+                (self.valid.get(block_idx), self.tags.get(block_idx))
+            };
 
+            match control_bits {
+                (Some(&true), Some(&value)) if value == tag => {
+                    self.stats.hits += 1;
                     self.sets[idx].policy_update(i, false)?;
                     return Ok(true);
                 },
@@ -405,6 +446,8 @@ impl CacheLevel {
                 _ => (),
             }
         }
+
+        self.stats.misses += 1;
         Ok(false)
     }
 
@@ -415,6 +458,10 @@ impl CacheLevel {
             set.print();
             i+=1;
         }
+    }
+
+    pub fn stats(&self) -> CacheStats {
+        self.stats.clone()
     }
 }
 
@@ -480,5 +527,27 @@ mod test {
         cache_set.insert(vec![0], 0).unwrap(); 
         cache_set.insert(vec![0], 2).unwrap(); 
         assert_eq!(cache_set.policy_next(), Ok(1usize));
+    }
+
+    #[test]
+    fn level_lru_eviction() {
+        let mut cache_level = 
+            CacheLevel::new(64, 2, 1, CacheReplacementPolicy::LRU);
+
+        let _ = cache_level.find(0x00);
+        assert_eq!(cache_level.stats.misses, 1);
+        let _ = cache_level.insert(0x00, vec![0; 64]);
+
+        let _ = cache_level.find(0x40);
+        assert_eq!(cache_level.stats.misses, 2);
+        let _ = cache_level.insert(0x40, vec![0; 64]);
+
+        assert_eq!(cache_level.stats.evictions, 0);
+
+        let _ = cache_level.find(0x80);
+        assert_eq!(cache_level.stats.misses, 3);
+        let _ = cache_level.insert(0x80, vec![0; 64]);
+
+        assert_eq!(cache_level.stats.evictions, 1);
     }
 }
