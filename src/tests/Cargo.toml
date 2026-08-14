@@ -7,8 +7,8 @@ edition.workspace = true
 homepage.workspace = true
 
 [dependencies]
-harts = { workspace = true }
-machine = { workspace = true }
+#harts = { workspace = true }
+#machine = { workspace = true }
 memory = { workspace = true }
 serde_yaml = { workspace = true }
 

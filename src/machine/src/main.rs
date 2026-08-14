@@ -28,8 +28,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("{:?}", machine.get_hart(0));
 
-    print_hex_table(&machine.dump_l1());    
-
     let yaml = serde_yaml::to_string(&config).unwrap();
     {
         let mut f1 = File::create("config.yaml").expect("Could not open f1");
