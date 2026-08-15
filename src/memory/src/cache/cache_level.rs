@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use rand::{rand_core::block, random_range};
+use rand::{random_range};
 
 use super::{
     CacheLevelConfig, 
@@ -61,11 +61,15 @@ impl CacheSet {
         policy: CacheReplacementPolicy
     ) -> Self {
 
-        let policy_list : Vec<usize> = match policy {
-            CacheReplacementPolicy::LRU => (0..set_size).rev().collect(),
-            CacheReplacementPolicy::LFU => vec![0; set_size],
-            CacheReplacementPolicy::FIFO => vec![],
-            CacheReplacementPolicy::Random => vec![],
+        let policy_list: Vec<usize> = if set_size == 1 {
+                vec![]
+            } else {
+                match policy {
+                    CacheReplacementPolicy::LRU => (0..set_size).rev().collect(),
+                    CacheReplacementPolicy::LFU => vec![0; set_size],
+                    CacheReplacementPolicy::FIFO => vec![],
+                    CacheReplacementPolicy::Random => vec![],
+                }
         };
 
         CacheSet {
@@ -98,6 +102,11 @@ impl CacheSet {
     }
 
     fn policy_next(&mut self) -> Result<usize, CacheError> {
+
+        if self.way == 1 {
+            return Ok(0);
+        }
+
         match self.policy {
             CacheReplacementPolicy::LRU => { 
                 match self.policy_list.last() {
@@ -136,6 +145,9 @@ impl CacheSet {
         idx: usize, 
         insertion: bool
     ) -> Result<(), CacheError> {
+        if self.way == 1 {
+            return Ok(());
+        }
         match self.policy {
             CacheReplacementPolicy::LRU => { 
                 let old_pos = 
