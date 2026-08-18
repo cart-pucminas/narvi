@@ -20,6 +20,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "core"
+version = "0.1.0"
+
+[[package]]
 name = "cpufeatures"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -29,14 +33,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "engine"
+version = "0.1.0"
+dependencies = [
+ "core",
+ "harts",
+ "memory",
+]
+
+[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
-
-[[package]]
-name = "event-system"
-version = "0.1.0"
 
 [[package]]
 name = "getrandom"
@@ -54,6 +63,7 @@ dependencies = [
 name = "harts"
 version = "0.1.0"
 dependencies = [
+ "core",
  "memory",
  "rounding_mode",
  "serde",
@@ -97,7 +107,6 @@ checksum = "68ab91017fe16c622486840e4c83c9a37afeff978bd239b5293d61ece587de66"
 name = "machine"
 version = "0.1.0"
 dependencies = [
- "event-system",
  "harts",
  "memory",
  "serde",

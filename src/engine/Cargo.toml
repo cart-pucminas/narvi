@@ -1,7 +1,12 @@
 [package]
-name = "event-system"
+name = "engine"
 version.workspace = true
 license-file.workspace = true
 authors.workspace = true
 edition.workspace = true
 homepage.workspace = true
+
+[dependencies]
+core = { workspace = true }
+harts = { workspace = true }
+memory = { workspace = true }

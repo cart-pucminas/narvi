@@ -1,6 +1,9 @@
 mod extensions;
 mod rv64i;
 
+use core::{
+    EngineContext, Module, ModuleId, event::EventPayload
+};
 use std::{
     error::Error, 
     fmt::{
@@ -98,10 +101,20 @@ struct HartConfig {
     l1_size: usize,
 }
 
+#[derive(Debug, Serialize, Clone, PartialEq)]
+enum HartState {
+    WaitingForOpcode,
+    WaitingForData { target_register: usize }
+}
+
 #[allow(dead_code, unused_variables)]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(from = "HartConfig")]
 pub struct Hart {
+    memory_bus_target: Option<ModuleId>,
+
+    state: HartState,
+
     extensions: Extensions,
     // Registers
     #[serde(skip)]
@@ -120,9 +133,21 @@ pub struct Hart {
     break_e: bool
 }
 
+impl Module for Hart { 
+    fn process_event(&mut self, event: core::event::Event, engine_context: &mut dyn EngineContext) {
+        match event.payload() {
+            EventPayload::HartExecute => { },
+            EventPayload::MemoryLoadRes { .. } => { },
+            _ => panic!("unknown event {event}")
+        }
+    }
+}
+
 impl From<HartConfig> for Hart {
     fn from(config: HartConfig) -> Self {
         Hart{
+            memory_bus_target: None,
+            state: HartState::WaitingForOpcode,
             extensions: config.extensions,
             regs: vec![0; 32],
             pc: 0,
@@ -147,6 +172,8 @@ impl From<MemError> for HartError {
 impl Hart {
     pub fn from_extensions(extensions: &Extensions) -> Hart {
         Hart {
+            memory_bus_target: None,
+            state: HartState::WaitingForOpcode,
             extensions: *extensions,
             regs: vec![0; 32],
             pc: 0,
@@ -332,21 +359,19 @@ impl Hart {
     }
 
     /// Simulates full pipeline execution for one instruction
-    pub fn update(&mut self, mem_ctx: &mut MemoryRuntimeContext) -> Result<bool, HartError> {
-        let inst = mem_ctx.read_32(self.pc as usize)?;
-
-        let mut result = self.execute_rv64i(inst, mem_ctx);
+    pub fn execute(&mut self, inst: u32, engine_context: &mut dyn EngineContext) -> Result<bool, HartError> {
+        let mut result = self.execute_rv64i(inst, engine_context);
 
         if matches!(result, Err(HartError::InstructionNotFound(_))) && self.extensions.m {
             result = self.execute_m(inst);
         }
 
         if matches!(result, Err(HartError::InstructionNotFound(_))) && self.extensions.f {
-            result = self.execute_f(inst, mem_ctx);
+            result = self.execute_f(inst, engine_context);
         }
 
         if matches!(result, Err(HartError::InstructionNotFound(_))) && self.extensions.d {
-            result = self.execute_d(inst, mem_ctx);
+            result = self.execute_d(inst, engine_context);
         }
 
         self.pc = self.pc + 4;
