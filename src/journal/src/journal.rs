@@ -55,7 +55,6 @@ impl Journal {
 
     #[rustfmt::skip]
     pub fn dump(&self) -> String {
-        let ipc = self.num_inst / self.num_cycles;
         let mut dump = format!("___ CPU Results ___
 Total instructions: {}
 Total cycles: {}
@@ -65,7 +64,7 @@ ___ Memory Results ___\n",
             self.num_inst,
             self.num_cycles,
             self.cycles_lost,
-            ipc
+            (self.num_inst as f64/ self.num_cycles as f64)
         );
         let mut miss_total: u128 = 0;
         let mut hit_total: u128 = 0;

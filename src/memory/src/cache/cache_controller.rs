@@ -32,16 +32,17 @@ impl CacheController {
             return Err("Missing config")
         }
 
+        let cache_levels: Vec<CacheLevel> = cache_config.iter()
+            .map(|cfg| CacheLevel::from(cfg.to_owned()))
+            .collect();
         Ok(
             Self {
-                cache_levels: cache_config.iter()
-                    .map(|cfg| CacheLevel::from(cfg.to_owned()))
-                    .collect(),
+                journal: CacheJournal::new(cache_levels.len()),
+                cache_levels,
                 block_size: match cache_config.last() {
                     Some(cfg) => cfg.block_size,
                     None => panic!("cache_config is guaranteed to be non-empty")
                 },
-                journal: CacheJournal::default(),
             }
         )
     }
