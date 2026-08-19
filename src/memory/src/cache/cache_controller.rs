@@ -1,12 +1,7 @@
-use serde::{
-    Serialize,
-    Deserialize
-};
-
 use super::{
     cache_level::CacheLevel,
     CacheLevelConfig,
-    CacheReturn
+    CacheReturn,
 };
 
 use crate::{
@@ -15,18 +10,20 @@ use crate::{
     CacheWritePolicy,
 };
 
+use journal::CacheJournal;
+
 macro_rules! to_byte_vec {
     ($bytes:expr) => {
         $bytes.to_le_bytes().to_vec()
     };
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug)]
 pub struct CacheController {
     cache_levels: Vec<CacheLevel>,
 
-    #[serde(skip)]
-    block_size: usize
+    block_size: usize,
+    journal: CacheJournal
 }
 
 impl CacheController {
@@ -43,7 +40,8 @@ impl CacheController {
                 block_size: match cache_config.last() {
                     Some(cfg) => cfg.block_size,
                     None => panic!("cache_config is guaranteed to be non-empty")
-                }
+                },
+                journal: CacheJournal::default(),
             }
         )
     }
@@ -121,14 +119,16 @@ impl CacheController {
     fn find (&mut self, addr: usize) -> Result<(bool, usize), MemError> {
 
         let n = self.cache_levels.len();
-        let mut level: i32 = 0;
+        let mut level: usize = 0;
         let mut hit = false;
 
         // Search levels
         while !hit && (level as usize) < n {
             if let Ok(true) = self.cache_levels[level as usize].find(addr) {
                 hit = true;
+                self.journal.hit(level);
             } else {
+                self.journal.miss(level);
                 level += 1;
             }
         }
