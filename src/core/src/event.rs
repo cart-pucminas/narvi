@@ -53,6 +53,18 @@ impl PartialOrd for Event {
 }
 
 impl Event {
+    pub fn new(
+        timestamp: u64, 
+        target: ModuleId, 
+        payload: EventPayload
+    ) -> Self {
+        Self {
+            timestamp,
+            target,
+            payload
+        }
+    }
+
     pub fn timestamp(&self) -> u64 {
         self.timestamp
     }
