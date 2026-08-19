@@ -1,6 +1,14 @@
+use core::{
+    EngineContext,
+    Target,
+    event::{
+        Event,
+        EventPayload
+    }
+};
 use memory::MemoryRuntimeContext;
 
-use crate::hart::{Hart, HartError};
+use crate::hart::{Hart, HartError, MemoryWaitState};
 use crate::util::{
     get_bits,
     sign_extend_64,
@@ -9,15 +17,15 @@ use crate::util::{
 
 #[allow(dead_code, unused_variables)]
 impl Hart {
-    pub fn execute_f(&mut self, inst: u32, mem_ctx: &mut MemoryRuntimeContext) -> Result<(), HartError> {
+    pub fn execute_f(&mut self, inst: u32, engine_context: &mut dyn EngineContext) -> Result<(), HartError> {
         let opcode = get_bits(6, 0, inst);
         let funct3 = get_bits(14, 12, inst);
         let funct5 = get_bits(24, 20, inst);
         let funct2 = get_bits(26, 25, inst);
         let funct7 = get_bits(31, 25, inst);
         match (funct7, funct2, funct5, funct3, opcode) {
-            (        _,    _,       _, 0b010, 0b0000111) => self.flw(inst, mem_ctx),
-            (        _,    _,       _, 0b010, 0b0100111) => self.fsw(inst, mem_ctx),
+            (        _,    _,       _, 0b010, 0b0000111) => self.flw(inst, engine_context),
+            (        _,    _,       _, 0b010, 0b0100111) => self.fsw(inst, engine_context),
             (        _, 0b00,       _,     _, 0b1000011) => self.fmadd_s(inst),
             (        _, 0b00,       _,     _, 0b1000111) => self.fmsub_s(inst),
             (        _, 0b00,       _,     _, 0b1001011) => self.fnmsub_s(inst),
@@ -50,23 +58,43 @@ impl Hart {
         }
     }
 
-    fn flw(&mut self, inst: u32, mem_ctx: &mut MemoryRuntimeContext) -> Result<(), HartError> {
+    fn flw(&mut self, inst: u32, engine_context: &mut dyn EngineContext) -> Result<(), HartError> {
         let rs1 = self.get_reg(get_bits(19, 15, inst) as u8)?;
         let rd = get_bits(11, 7, inst) as u8;
         let imm = sign_extend_64(get_bits(31, 20, inst) as u64, 12);
         let addr = rs1.wrapping_add(imm);
-        let resulting_value = mem_ctx.read_32(addr as usize)?;
-        self.set_fp_reg_32_bits(rd, resulting_value)
+
+        engine_context.schedule(
+            1, 
+            Target::Module(self.memory_bus_target.expect("memory bus target not set")),
+            EventPayload::MemoryLoadReq { address: addr as u64, size: 32 }
+        );
+
+        self.memory_wait_state = MemoryWaitState::DataForFReg { target: rd };
+
+        Ok(())
     }
 
-    fn fsw(&mut self, inst: u32, mem_ctx: &mut MemoryRuntimeContext) -> Result<(), HartError> {
+    fn fsw(&mut self, inst: u32, engine_context: &mut dyn EngineContext) -> Result<(), HartError> {
         let rs1 = self.get_reg(get_bits(19, 15, inst) as u8)?;
         let imm_bits = get_bits(11, 7, inst) | ( get_bits(31, 25, inst) << 5 );
         let imm = sign_extend_64(imm_bits as u64, 12);
         let addr = rs1.wrapping_add(imm);
         let rs2 = get_bits(19, 15, inst) as u8;
         let reg_val = self.get_fp_reg_32_bits(rs2)?;
-        mem_ctx.write_32(addr as usize, reg_val)?;
+
+        engine_context.schedule(
+            1,
+            Target::Module(self.memory_bus_target.expect("memory bus target not set")),
+            EventPayload::MemoryStoreReq { 
+                address: addr as u64, 
+                data: reg_val as u64,
+                size: 32 
+            }
+        );
+
+        self.memory_wait_state = MemoryWaitState::Idle;
+
         Ok(())
     }
 

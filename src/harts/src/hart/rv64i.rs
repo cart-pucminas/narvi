@@ -1,9 +1,26 @@
-use core::EngineContext;
+use core::{
+    EngineContext, 
+    Target,
+    event::{
+        Event, 
+        EventPayload
+    }
+};
 
-use memory::MemoryRuntimeContext;
+use super::{
+    Hart, 
+    HartError, 
+    IMode,
+    MemoryWaitState
+};
 
-use super::{Hart, HartError};
-use crate::util::{get_bits, sign_extend_32, sign_extend_64};
+use crate::{
+    util::{
+        get_bits, 
+        sign_extend_32, 
+        sign_extend_64
+    }
+};
 
 #[allow(dead_code, unused_variables)]
 impl Hart {
@@ -317,8 +334,20 @@ impl Hart {
         let rd = get_bits(11, 7, inst) as u8;
         let imm = sign_extend_32(get_bits(31, 20, inst), 12);
         let addr = rs1 + imm;
-        let resulting_value = sign_extend_64(engine_context.read_8(addr as usize)? as u64, 8);
-        self.set_reg(rd, resulting_value)
+
+        engine_context.schedule(
+            1, 
+            Target::Module(self.memory_bus_target.expect("memory bus target not set")),
+            EventPayload::MemoryLoadReq { address: addr as u64, size: 8 }
+        );
+        
+        self.memory_wait_state = MemoryWaitState::DataForIReg { 
+            target: rd, 
+            size: 8, 
+            mode: IMode::Signed 
+        };
+        
+        Ok(())
     }
 
     fn lh(&mut self, inst: u32, engine_context: &mut dyn EngineContext) -> Result<(), HartError> {
@@ -326,8 +355,20 @@ impl Hart {
         let rd = get_bits(11, 7, inst) as u8;
         let imm = sign_extend_32(get_bits(31, 20, inst), 12);
         let addr = rs1 + imm;
-        let resulting_value = sign_extend_64(engine_context.read_16(addr as usize)? as u64, 16);
-        self.set_reg(rd, resulting_value)
+
+        engine_context.schedule(
+            1, 
+            Target::Module(self.memory_bus_target.expect("memory bus target not set")),
+            EventPayload::MemoryLoadReq { address: addr as u64, size: 16 }
+        );
+        
+        self.memory_wait_state = MemoryWaitState::DataForIReg { 
+            target: rd, 
+            size: 16, 
+            mode: IMode::Signed 
+        };
+        
+        Ok(())
     }
 
     fn lw(&mut self, inst: u32, engine_context: &mut dyn EngineContext) -> Result<(), HartError> {
@@ -335,8 +376,20 @@ impl Hart {
         let rd = get_bits(11, 7, inst) as u8;
         let imm = sign_extend_32(get_bits(31, 20, inst), 12);
         let addr = rs1 + imm;
-        let resulting_value = sign_extend_64(engine_context.read_32(addr as usize)? as u64, 32);
-        self.set_reg(rd, resulting_value)
+
+        engine_context.schedule(
+            1, 
+            Target::Module(self.memory_bus_target.expect("memory bus target not set")),
+            EventPayload::MemoryLoadReq { address: addr as u64, size: 32 }
+        );
+        
+        self.memory_wait_state = MemoryWaitState::DataForIReg { 
+            target: rd, 
+            size: 32, 
+            mode: IMode::Signed 
+        };
+        
+        Ok(())
     }
 
     fn lwu(&mut self, inst: u32, engine_context: &mut dyn EngineContext) -> Result<(), HartError> {
@@ -344,8 +397,20 @@ impl Hart {
         let rd = get_bits(11, 7, inst) as u8;
         let imm = sign_extend_32(get_bits(31, 20, inst), 12);
         let addr = rs1 + imm;
-        let resulting_value = engine_context.read_32(addr as usize)? as u64;
-        self.set_reg(rd, resulting_value)
+
+        engine_context.schedule(
+            1, 
+            Target::Module(self.memory_bus_target.expect("memory bus target not set")),
+            EventPayload::MemoryLoadReq { address: addr as u64, size: 32 }
+        );
+        
+        self.memory_wait_state = MemoryWaitState::DataForIReg { 
+            target: rd, 
+            size: 32, 
+            mode: IMode::Unsigned 
+        };
+        
+        Ok(())
     }
 
     fn lbu(&mut self, inst: u32, engine_context: &mut dyn EngineContext) -> Result<(), HartError> {
@@ -353,8 +418,20 @@ impl Hart {
         let rd = get_bits(11, 7, inst) as u8;
         let imm = sign_extend_32(get_bits(31, 20, inst), 12);
         let addr = rs1 + imm;
-        let resulting_value = engine_context.read_8(addr as usize)? as u64;
-        self.set_reg(rd, resulting_value)
+
+        engine_context.schedule(
+            1, 
+            Target::Module(self.memory_bus_target.expect("memory bus target not set")),
+            EventPayload::MemoryLoadReq { address: addr as u64, size: 8 }
+        );
+        
+        self.memory_wait_state = MemoryWaitState::DataForIReg { 
+            target: rd, 
+            size: 8, 
+            mode: IMode::Unsigned 
+        };
+        
+        Ok(())
     }
 
     fn lhu(&mut self, inst: u32, engine_context: &mut dyn EngineContext) -> Result<(), HartError> {
@@ -362,8 +439,20 @@ impl Hart {
         let rd = get_bits(11, 7, inst) as u8;
         let imm = sign_extend_32(get_bits(31, 20, inst), 12);
         let addr = rs1 + imm;
-        let resulting_value = engine_context.read_16(addr as usize)? as u64;
-        self.set_reg(rd, resulting_value)
+
+        engine_context.schedule(
+            1, 
+            Target::Module(self.memory_bus_target.expect("memory bus target not set")),
+            EventPayload::MemoryLoadReq { address: addr as u64, size: 16 }
+        );
+        
+        self.memory_wait_state = MemoryWaitState::DataForIReg { 
+            target: rd, 
+            size: 16, 
+            mode: IMode::Unsigned 
+        };
+        
+        Ok(())
     }
 
     fn ld(&mut self, inst: u32, engine_context: &mut dyn EngineContext) -> Result<(), HartError> {
@@ -371,8 +460,20 @@ impl Hart {
         let rd = get_bits(11, 7, inst) as u8;
         let imm = sign_extend_32(get_bits(31, 20, inst), 12);
         let addr = rs1 + imm;
-        let resulting_value = engine_context.read_64(addr as usize)?;
-        self.set_reg(rd, resulting_value)
+        
+        engine_context.schedule(
+            1, 
+            Target::Module(self.memory_bus_target.expect("memory bus target not set")),
+            EventPayload::MemoryLoadReq { address: addr as u64, size: 64 }
+        );
+        
+        self.memory_wait_state = MemoryWaitState::DataForIReg { 
+            target: rd, 
+            size: 64, 
+            mode: IMode::Unsigned 
+        };
+        
+        Ok(())
     }
 
     fn sb(&mut self, inst: u32, engine_context: &mut dyn EngineContext) -> Result<(), HartError> { 
@@ -381,8 +482,20 @@ impl Hart {
         let imm = sign_extend_32(imm_bits, 12);
         let addr = rs1 + imm;
         let rs2 = get_bits(19, 15, inst) as u8;
-        let reg_val = self.get_reg(rs2)? as u8;
-        engine_context.write_8(addr as usize, reg_val)?;
+        let reg_val = self.get_reg(rs2)?;
+
+        engine_context.schedule(
+            1, 
+            Target::Module(self.memory_bus_target.expect("memory bus target not set")), 
+            EventPayload::MemoryStoreReq { 
+                address: addr as u64, 
+                data: reg_val, 
+                size: 8 
+            }
+        );
+
+        self.memory_wait_state = MemoryWaitState::Idle;
+
         Ok(())
     }
 
@@ -392,8 +505,20 @@ impl Hart {
         let imm = sign_extend_32(imm_bits, 12);
         let addr = rs1 + imm;
         let rs2 = get_bits(19, 15, inst) as u8;
-        let reg_val = self.get_reg(rs2)? as u16;
-        engine_context.write_16(addr as usize, reg_val)?;
+        let reg_val = self.get_reg(rs2)?;
+
+        engine_context.schedule(
+            1, 
+            Target::Module(self.memory_bus_target.expect("memory bus target not set")), 
+            EventPayload::MemoryStoreReq { 
+                address: addr as u64, 
+                data: reg_val, 
+                size: 16 
+            }
+        );
+
+        self.memory_wait_state = MemoryWaitState::Idle;
+
         Ok(())
     }
 
@@ -403,8 +528,20 @@ impl Hart {
         let imm = sign_extend_32(imm_bits, 12);
         let addr = rs1 + imm;
         let rs2 = get_bits(19, 15, inst) as u8;
-        let reg_val = self.get_reg(rs2)? as u32;
-        engine_context.write_32(addr as usize, reg_val)?;
+        let reg_val = self.get_reg(rs2)?;
+
+        engine_context.schedule(
+            1, 
+            Target::Module(self.memory_bus_target.expect("memory bus target not set")), 
+            EventPayload::MemoryStoreReq { 
+                address: addr as u64, 
+                data: reg_val, 
+                size: 32 
+            }
+        );
+
+        self.memory_wait_state = MemoryWaitState::Idle;
+
         Ok(())
     }
 
@@ -414,8 +551,20 @@ impl Hart {
         let imm = sign_extend_32(imm_bits, 12);
         let addr = rs1 + imm;
         let rs2 = get_bits(19, 15, inst) as u8;
-        let reg_val = self.get_reg(rs2)? as u64;
-        engine_context.write_64(addr as usize, reg_val)?;
+        let reg_val = self.get_reg(rs2)?;
+
+        engine_context.schedule(
+            1, 
+            Target::Module(self.memory_bus_target.expect("memory bus target not set")), 
+            EventPayload::MemoryStoreReq { 
+                address: addr as u64, 
+                data: reg_val, 
+                size: 64 
+            }
+        );
+
+        self.memory_wait_state = MemoryWaitState::Idle;
+
         Ok(())
     }
 

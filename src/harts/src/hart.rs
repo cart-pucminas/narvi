@@ -2,7 +2,10 @@ mod extensions;
 mod rv64i;
 
 use core::{
-    EngineContext, Module, ModuleId, event::EventPayload
+    EngineContext, 
+    Module, 
+    ModuleId, 
+    Target, event::EventPayload
 };
 use std::{
     error::Error, 
@@ -17,6 +20,8 @@ use memory::{CacheController, MemError, MemoryRuntimeContext};
 use serde::{Serialize, Deserialize};
 
 pub use extensions::Extensions;
+
+use crate::util::{sign_extend_32, sign_extend_64, sign_extend_128};
 
 #[allow(dead_code, unused_variables, non_camel_case_types)]
 #[derive(Debug)]
@@ -102,9 +107,18 @@ struct HartConfig {
 }
 
 #[derive(Debug, Serialize, Clone, PartialEq)]
-enum HartState {
-    WaitingForOpcode,
-    WaitingForData { target_register: usize }
+enum IMode {
+    Signed,
+    Unsigned
+}
+
+#[derive(Debug, Serialize, Clone, PartialEq)]
+enum MemoryWaitState {
+    Idle,
+    Opcode,
+    DataForIReg { target: u8, size: u8, mode: IMode },
+    DataForFReg { target: u8 },
+    DataForDReg { target: u8 },
 }
 
 #[allow(dead_code, unused_variables)]
@@ -113,7 +127,7 @@ enum HartState {
 pub struct Hart {
     memory_bus_target: Option<ModuleId>,
 
-    state: HartState,
+    memory_wait_state: MemoryWaitState,
 
     extensions: Extensions,
     // Registers
@@ -136,9 +150,45 @@ pub struct Hart {
 impl Module for Hart { 
     fn process_event(&mut self, event: core::event::Event, engine_context: &mut dyn EngineContext) {
         match event.payload() {
-            EventPayload::HartExecute => { },
-            EventPayload::MemoryLoadRes { .. } => { },
-            _ => panic!("unknown event {event}")
+            EventPayload::HartExecute => { 
+                engine_context.schedule(
+                    1,
+                    Target::Myself,
+                    EventPayload::MemoryLoadReq { address: self.pc, size: 32 }
+                );
+
+                self.memory_wait_state = MemoryWaitState::Opcode;
+            },
+            EventPayload::MemoryLoadRes { data, size } => { 
+                let current_state = std::mem::replace(&mut self.memory_wait_state, MemoryWaitState::Idle);
+
+                match current_state {
+                    MemoryWaitState::Idle => (),
+                    MemoryWaitState::Opcode => {
+                        self.execute(*data as u32, engine_context).unwrap();
+                    }
+                    MemoryWaitState::DataForIReg { 
+                        target,
+                        size,
+                        mode
+                    } => {
+                        let data = if mode == IMode::Signed {
+                            sign_extend_64(*data, size) as u64
+                        } else {
+                            *data
+                        };
+
+                        self.set_reg(target, data);
+                    },
+                    MemoryWaitState::DataForFReg { target } => {
+                        self.set_fp_reg_32_bits(target, *data as u32);
+                    },
+                    MemoryWaitState::DataForDReg { target } => {
+                        self.set_fp_reg_64(target, f64::from_bits(*data));
+                    }
+                }
+            },
+            _ => panic!("cannot process {event}")
         }
     }
 }
@@ -147,7 +197,7 @@ impl From<HartConfig> for Hart {
     fn from(config: HartConfig) -> Self {
         Hart{
             memory_bus_target: None,
-            state: HartState::WaitingForOpcode,
+            memory_wait_state: MemoryWaitState::Opcode,
             extensions: config.extensions,
             regs: vec![0; 32],
             pc: 0,
@@ -173,7 +223,7 @@ impl Hart {
     pub fn from_extensions(extensions: &Extensions) -> Hart {
         Hart {
             memory_bus_target: None,
-            state: HartState::WaitingForOpcode,
+            memory_wait_state: MemoryWaitState::Opcode,
             extensions: *extensions,
             regs: vec![0; 32],
             pc: 0,
