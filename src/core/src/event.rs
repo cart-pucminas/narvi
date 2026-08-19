@@ -1,13 +1,16 @@
 use std::fmt::Display;
 
-use crate::ModuleId;
+use crate::{
+    ModuleId,
+    Size
+};
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum EventPayload {
     HartExecute,
-    MemoryLoadReq { address: u64, size: u8 },
-    MemoryLoadRes { data: u64, size: u8},
-    MemoryStoreReq { address: u64, data: u64, size: u8 },
+    MemoryLoadReq { address: usize, size: Size },
+    MemoryLoadRes { data: u64, size: Size },
+    MemoryStoreReq { address: usize, data: u64, size: Size },
 }
 
 impl EventPayload {

@@ -1,6 +1,7 @@
 use core::{
     EngineContext,
     Target,
+    Size,
     event::{
         Event,
         EventPayload
@@ -67,7 +68,7 @@ impl Hart {
         engine_context.schedule(
             1, 
             Target::Module(self.memory_bus_target.expect("memory bus target not set")),
-            EventPayload::MemoryLoadReq { address: addr as u64, size: 32 }
+            EventPayload::MemoryLoadReq { address: addr as usize, size: Size::Word }
         );
 
         self.memory_wait_state = MemoryWaitState::DataForFReg { target: rd };
@@ -87,9 +88,9 @@ impl Hart {
             1,
             Target::Module(self.memory_bus_target.expect("memory bus target not set")),
             EventPayload::MemoryStoreReq { 
-                address: addr as u64, 
+                address: addr as usize, 
                 data: reg_val as u64,
-                size: 32 
+                size: Size::Word 
             }
         );
 

@@ -117,6 +117,7 @@ dependencies = [
 name = "memory"
 version = "0.1.0"
 dependencies = [
+ "core",
  "rand",
  "serde",
 ]

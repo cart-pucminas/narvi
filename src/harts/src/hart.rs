@@ -5,7 +5,9 @@ use core::{
     EngineContext, 
     Module, 
     ModuleId, 
-    Target, event::EventPayload
+    Target, 
+    Size,
+    event::EventPayload
 };
 use std::{
     error::Error, 
@@ -112,11 +114,11 @@ enum IMode {
     Unsigned
 }
 
-#[derive(Debug, Serialize, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 enum MemoryWaitState {
     Idle,
     Opcode,
-    DataForIReg { target: u8, size: u8, mode: IMode },
+    DataForIReg { target: u8, size: Size, mode: IMode },
     DataForFReg { target: u8 },
     DataForDReg { target: u8 },
 }
@@ -127,6 +129,7 @@ enum MemoryWaitState {
 pub struct Hart {
     memory_bus_target: Option<ModuleId>,
 
+    #[serde(skip)]
     memory_wait_state: MemoryWaitState,
 
     extensions: Extensions,
@@ -154,7 +157,7 @@ impl Module for Hart {
                 engine_context.schedule(
                     1,
                     Target::Myself,
-                    EventPayload::MemoryLoadReq { address: self.pc, size: 32 }
+                    EventPayload::MemoryLoadReq { address: self.pc as usize, size: Size::Word }
                 );
 
                 self.memory_wait_state = MemoryWaitState::Opcode;
@@ -173,7 +176,7 @@ impl Module for Hart {
                         mode
                     } => {
                         let data = if mode == IMode::Signed {
-                            sign_extend_64(*data, size) as u64
+                            sign_extend_64(*data, size.in_bits()) as u64
                         } else {
                             *data
                         };
