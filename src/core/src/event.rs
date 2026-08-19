@@ -6,9 +6,15 @@ use crate::{
 };
 
 #[derive(Debug, Eq, PartialEq)]
+pub enum Target {
+    Module(ModuleId),
+    Myself
+}
+
+#[derive(Debug, Eq, PartialEq)]
 pub enum EventPayload {
     HartExecute,
-    MemoryLoadReq { address: usize, size: Size },
+    MemoryLoadReq { address: usize, size: Size, requester: Target },
     MemoryLoadRes { data: u64, size: Size },
     MemoryStoreReq { address: usize, data: u64, size: Size },
 }

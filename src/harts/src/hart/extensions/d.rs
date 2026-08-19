@@ -1,10 +1,10 @@
 use core::{
     EngineContext,
-    Target,
     Size,
     event::{
         Event,
-        EventPayload
+        EventPayload,
+        Target,
     }
 };
 
@@ -78,7 +78,8 @@ impl Hart {
             Target::Module(self.memory_bus_target.expect("memory bus target not set")),
             EventPayload::MemoryLoadReq { 
                 address: addr as usize,
-                size: Size::DoubleWord
+                size: Size::DoubleWord,
+                requester: Target::Myself
             }
         );
 

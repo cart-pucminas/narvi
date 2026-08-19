@@ -1,10 +1,10 @@
 use core::{
     EngineContext,
-    Target,
     Size,
     event::{
         Event,
-        EventPayload
+        EventPayload,
+        Target,
     }
 };
 use memory::MemoryRuntimeContext;
@@ -68,7 +68,11 @@ impl Hart {
         engine_context.schedule(
             1, 
             Target::Module(self.memory_bus_target.expect("memory bus target not set")),
-            EventPayload::MemoryLoadReq { address: addr as usize, size: Size::Word }
+            EventPayload::MemoryLoadReq { 
+                address: addr as usize, 
+                size: Size::Word,
+                requester: Target::Myself
+            }
         );
 
         self.memory_wait_state = MemoryWaitState::DataForFReg { target: rd };

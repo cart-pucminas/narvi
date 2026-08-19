@@ -32,10 +32,6 @@ impl Size {
     }
 }
 
-pub enum Target {
-    Module(ModuleId),
-    Myself
-}
 
 pub trait EngineContext {
     fn schedule(&mut self, timestamp: u64, target: Target, payload: EventPayload);

@@ -1,3 +1,10 @@
+use core::{
+    Module, 
+    ModuleId, 
+    Size,
+    event::EventPayload,
+};
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum RamError {
     OutOfBounds
@@ -7,8 +14,37 @@ pub enum RamError {
 #[derive(Debug, Default)]
 pub struct Ram(Vec<u8>);
 
-impl Ram {
+impl Module for Ram {
+    fn process_event(&mut self, my_id: ModuleId, event: core::event::Event, engine_context: &mut dyn core::EngineContext) {
+        match event.payload() {
+            EventPayload::MemoryLoadReq { address, size, requester } => {
+                let data = match *size {
+                    Size::Byte => self.read_8(*address).unwrap() as u64,
+                    Size::HalfWord => self.read_16(*address).unwrap() as u64,
+                    Size::Word => self.read_32(*address).unwrap() as u64,
+                    Size::DoubleWord => self.read_64(*address).unwrap()
+                };
 
+                engine_context.schedule(
+                    1,
+                    *requester,
+                    EventPayload::MemoryLoadRes { data: data, size: *size }
+                ); 
+            },
+            EventPayload::MemoryStoreReq { address, data, size } => {
+                match *size {
+                    Size::Byte => self.write_8(*address, *data as u8).unwrap(),
+                    Size::HalfWord => self.write_16(*address, *data as u16).unwrap(),
+                    Size::Word => self.write_32(*address, *data as u32).unwrap(),
+                    Size::DoubleWord => self.write_64(*address, *data).unwrap()
+                }
+            }
+            _ => panic!()
+        }
+    }
+}
+
+impl Ram {
     pub fn new(size: usize) -> Self {
         Ram(vec![0; size])
     }

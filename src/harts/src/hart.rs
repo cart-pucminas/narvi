@@ -5,9 +5,11 @@ use core::{
     EngineContext, 
     Module, 
     ModuleId, 
-    Target, 
     Size,
-    event::EventPayload
+    event::{
+        EventPayload,
+        Target,
+    }
 };
 use std::{
     error::Error, 
@@ -157,7 +159,11 @@ impl Module for Hart {
                 engine_context.schedule(
                     1,
                     Target::Myself,
-                    EventPayload::MemoryLoadReq { address: self.pc as usize, size: Size::Word }
+                    EventPayload::MemoryLoadReq { 
+                        address: self.pc as usize, 
+                        size: Size::Word,
+                        requester: Target::Myself
+                    }
                 );
 
                 self.memory_wait_state = MemoryWaitState::Opcode;
