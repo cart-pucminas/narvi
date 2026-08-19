@@ -8,5 +8,5 @@ homepage.workspace = true
 
 [dependencies]
 journal = { workspace = true }
-rand = "0.10.2"
 serde.workspace = true
+rand.workspace = true

@@ -5,11 +5,11 @@ use crate::{
 
 #[derive(Default, Debug, Clone)]
 pub struct Journal {
-    cache_miss: Vec<u128>,
-    cache_hit: Vec<u128>,
-    cycles_lost: u128,
-    num_cycles: u128,
-    num_inst: u128,
+    pub cache_miss: Vec<u128>,
+    pub cache_hit: Vec<u128>,
+    pub cycles_lost: u128,
+    pub num_cycles: u128,
+    pub num_inst: u128,
 }
 
 impl Journal {
@@ -52,4 +52,53 @@ impl Journal {
     pub fn inst_done(&mut self, amount: u128) {
         self.num_inst += amount;
     }
+
+    #[rustfmt::skip]
+    pub fn dump(&self) -> String {
+        let ipc = self.num_inst / self.num_cycles;
+        let mut dump = format!("___ CPU Results ___
+Total instructions: {}
+Total cycles: {}
+Total cycles lost: {}
+IPC: {}\n
+___ Memory Results ___\n",
+            self.num_inst,
+            self.num_cycles,
+            self.cycles_lost,
+            ipc
+        );
+        let mut miss_total: u128 = 0;
+        let mut hit_total: u128 = 0;
+        for i in 0..self.cache_miss.len() {
+            dump.push_str(format!(" __ L{} __
+Hits: {}
+Misses: {}
+Total accesses: {}
+Miss rate: {}%\n",
+                i+1, self.cache_hit[i], self.cache_miss[i],
+                self.cache_hit[i] + self.cache_miss[i],
+                (self.cache_miss[i] as f64 / (self.cache_hit[i] + self.cache_miss[i]) as f64) * 100.0
+            ).as_str());
+            miss_total += self.cache_miss[i];
+            hit_total += self.cache_hit[i];
+        }
+        dump.push_str(format!(" __ Total __
+Hits: {}
+Misses: {}
+Total accesses: {}
+Miss rate: {}%\n",
+            hit_total, miss_total,
+            hit_total + miss_total,
+            (miss_total as f64 / (hit_total + miss_total) as f64) * 100.0
+        ).as_str());
+        dump
+    }
 }
+
+/*
+    cache_miss: Vec<u128>,
+    cache_hit: Vec<u128>,
+    cycles_lost: u128,
+    num_cycles: u128,
+    num_inst: u128,
+*/
