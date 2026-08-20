@@ -39,7 +39,7 @@ impl Module for Ram {
                     Size::DoubleWord => self.write_64(*address, *data).unwrap()
                 }
             }
-            _ => panic!()
+            _ => panic!("cannot process {event}")
         }
     }
 }
