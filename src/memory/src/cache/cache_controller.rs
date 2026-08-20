@@ -1,18 +1,16 @@
-use serde::{
-    Serialize,
-    Deserialize
-};
-
 use super::{
     cache_level::CacheLevel,
     CacheLevelConfig,
-    CacheReturn
+    CacheReturn,
 };
 
 use crate::{
     Ram,
-    MemError
+    MemError,
+    CacheWritePolicy,
 };
+
+use journal::CacheJournal;
 
 macro_rules! to_byte_vec {
     ($bytes:expr) => {
@@ -20,12 +18,12 @@ macro_rules! to_byte_vec {
     };
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug)]
 pub struct CacheController {
     cache_levels: Vec<CacheLevel>,
 
-    #[serde(skip)]
-    block_size: usize
+    block_size: usize,
+    journal: CacheJournal
 }
 
 impl CacheController {
@@ -34,15 +32,17 @@ impl CacheController {
             return Err("Missing config")
         }
 
+        let cache_levels: Vec<CacheLevel> = cache_config.iter()
+            .map(|cfg| CacheLevel::from(cfg.to_owned()))
+            .collect();
         Ok(
             Self {
-                cache_levels: cache_config.iter()
-                    .map(|cfg| CacheLevel::from(cfg.to_owned()))
-                    .collect(),
+                journal: CacheJournal::new(cache_levels.len()),
+                cache_levels,
                 block_size: match cache_config.last() {
                     Some(cfg) => cfg.block_size,
                     None => panic!("cache_config is guaranteed to be non-empty")
-                }
+                },
             }
         )
     }
@@ -57,6 +57,32 @@ impl CacheController {
             ram.write_bytes(addr, dirty_block)
                 .map_err(MemError::Ram)?;
         }
+        Ok(())
+    }
+
+    fn write_through (&mut self, ram: &mut Ram, addr: usize, data: Vec<u8>) -> Result<(), MemError> {
+
+        let num_levels = self.cache_levels.len();
+        let mut writes_done = 1;    // First level was written
+
+        for i in 0..self.cache_levels.len() - 1 {
+            if matches!(&self.cache_levels[i].write_policy, CacheWritePolicy::WriteThrough) {
+                self.cache_levels[i+1].update(addr, data.clone())
+                .map_err(MemError::Cache)?;
+            }
+            writes_done += 1;
+        }
+
+        if writes_done == num_levels
+            && matches!(
+                &self.cache_levels[num_levels-1].write_policy,
+                CacheWritePolicy::WriteThrough
+            ) 
+        {
+            ram.write_bytes(addr, data)
+            .map_err(MemError::Ram)?;
+        }
+
         Ok(())
     }
 
@@ -82,8 +108,10 @@ impl CacheController {
             let opt = self.cache_levels[level as usize].insert(addr, block.clone())
                       .map_err(MemError::Cache)?;
 
-            if let Some((dirty_addr, dirty_block)) = opt {
-                self.write_back(ram, dirty_addr, level, dirty_block)?;
+            if let CacheWritePolicy::WriteBack = self.cache_levels[level as usize].write_policy {
+                if let Some((dirty_addr, dirty_block)) = opt {
+                    self.write_back(ram, dirty_addr, level, dirty_block)?;
+                }
             }
         }
         Ok(())
@@ -92,14 +120,16 @@ impl CacheController {
     fn find (&mut self, addr: usize) -> Result<(bool, usize), MemError> {
 
         let n = self.cache_levels.len();
-        let mut level: i32 = 0;
+        let mut level: usize = 0;
         let mut hit = false;
 
         // Search levels
         while !hit && (level as usize) < n {
             if let Ok(true) = self.cache_levels[level as usize].find(addr) {
                 hit = true;
+                self.journal.hit(level);
             } else {
+                self.journal.miss(level);
                 level += 1;
             }
         }
@@ -126,14 +156,19 @@ impl CacheController {
     fn write (&mut self, ram: &mut Ram, addr: usize, data: Vec<u8>) -> Result<(), MemError> {
         
         if let Ok(true) = self.cache_levels[0].find(addr) { // In the first cache layer
-            self.cache_levels[0].update(addr, data)
+            self.cache_levels[0].update(addr, data.clone())
             .map_err(MemError::Cache)?;
 
         } else if let Ok((in_cache, lvl)) = self.find(addr) {
             self.bring_upwards(ram, addr, lvl, !in_cache)?;
-            self.cache_levels[0].update(addr, data)
+            self.cache_levels[0].update(addr, data.clone())
             .map_err(MemError::Cache)?;
         }
+
+        if matches!(self.cache_levels[0].write_policy, CacheWritePolicy::WriteThrough) {
+            self.write_through(ram, addr, data)?;
+        }
+
         Ok(())
     }
 

@@ -4,8 +4,9 @@ members = [
     "src/harts",
     "src/memory",
     "src/machine",
-    "src/tests", 
     "src/core",
+    "src/tests",
+    "src/journal",
 ]
 resolver = "3"
 
@@ -25,8 +26,10 @@ core = { path = "src/core" }
 engine = { path = "src/engine" }
 harts = { path = "src/harts" }
 machine = { path = "src/machine" }
+journal = { path = "src/journal" }
 memory = { path = "src/memory" }
 tests = { path = "src/tests" }
 rounding_mode = { git = "https://github.com/AntonioDrumond/rust-rounding-mode", rev = "b4bfeafe1dcfcaf527b7faa48b31070f6a414822" }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_yaml = "0.9.34"
+rand = "0.10.2"

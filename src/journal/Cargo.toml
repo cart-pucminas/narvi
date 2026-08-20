@@ -1,5 +1,5 @@
 [package]
-name = "memory"
+name = "journal"
 version.workspace = true
 license-file.workspace = true
 authors.workspace = true
@@ -7,7 +7,3 @@ edition.workspace = true
 homepage.workspace = true
 
 [dependencies]
-journal = { workspace = true }
-serde.workspace = true
-core.workspace = true
-rand.workspace = true
