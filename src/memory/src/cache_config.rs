@@ -1,6 +1,3 @@
-use serde::{Deserialize, Serialize};
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CacheError {
     OutOfBounds,
@@ -22,4 +19,3 @@ impl From<CacheReturn> for Vec<u8> {
         }
     }
 }
-

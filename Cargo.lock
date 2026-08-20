@@ -56,7 +56,6 @@ version = "0.1.0"
 dependencies = [
  "memory",
  "rounding_mode",
- "serde",
 ]
 
 [[package]]
@@ -114,7 +113,6 @@ version = "0.1.0"
 dependencies = [
  "journal",
  "rand",
- "serde",
 ]
 
 [[package]]

@@ -9,4 +9,3 @@ homepage.workspace = true
 [dependencies]
 memory = { workspace = true }
 rounding_mode = { workspace = true }
-serde = { workspace = true }

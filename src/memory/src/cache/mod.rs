@@ -3,9 +3,7 @@ mod cache_level;
 
 pub use cache_controller::CacheController;
 
-use serde::{ Serialize, Deserialize };
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy)]
 pub enum CacheReplacementPolicy {
     LRU,
     LFU,
@@ -13,13 +11,13 @@ pub enum CacheReplacementPolicy {
     Random,
 }
 
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone)]
 pub enum CacheWritePolicy {
     WriteThrough,
     WriteBack
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct CacheLevelConfig {
     pub n_blocks: usize,
     pub block_size: usize,
@@ -70,4 +68,3 @@ impl From<CacheReturn> for Vec<u8> {
         }
     }
 }
-

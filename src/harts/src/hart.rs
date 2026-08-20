@@ -11,8 +11,6 @@ use std::{
 
 use memory::{CacheController, MemError, MemoryRuntimeContext};
 
-use serde::{Serialize, Deserialize};
-
 pub use extensions::Extensions;
 
 #[allow(dead_code, unused_variables, non_camel_case_types)]
@@ -75,7 +73,7 @@ impl Debug for HartError {
 
 impl Error for HartError {}
 
-#[derive(Clone, Debug, Serialize, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 enum FRegs {
     F(Vec<f32>),
     D(Vec<f64>),
@@ -92,50 +90,20 @@ impl FRegs {
     }
 }
 
-#[derive(Debug, Deserialize)]
-struct HartConfig {
-    extensions: Extensions,
-    l1_size: usize,
-}
-
 #[allow(dead_code, unused_variables)]
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-#[serde(from = "HartConfig")]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Hart {
     extensions: Extensions,
     // Registers
-    #[serde(skip)]
     regs: Vec<u64>,
-    #[serde(skip)]
     pc: u64,
 
     // __Floating Point__
-    #[serde(skip)]
     f_regs: FRegs,
-    #[serde(skip)]
     flen: u8,
-    #[serde(skip)]
     fcsr: u32,
     // TODO: temporary flag used by ebreak (see rv64i implementation)
     break_e: bool
-}
-
-impl From<HartConfig> for Hart {
-    fn from(config: HartConfig) -> Self {
-        Hart{
-            extensions: config.extensions,
-            regs: vec![0; 32],
-            pc: 0,
-            f_regs: FRegs::new(config.extensions.f, config.extensions.d),
-            flen: match (config.extensions.f, config.extensions.d) {
-                (true, false) => 32,
-                (_, true) => 64,
-                (false, false) => 0,
-            },
-            fcsr: 0,
-            break_e: false
-        }
-    }
 }
 
 impl From<MemError> for HartError {
