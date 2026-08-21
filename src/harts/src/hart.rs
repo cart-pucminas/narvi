@@ -5,7 +5,6 @@ use core::{
     EngineContext, 
     Module, 
     ModuleId, 
-    Size,
     event::{
         EventPayload,
         Target,
@@ -161,20 +160,20 @@ impl Module for Hart {
                     Target::Myself,
                     EventPayload::MemoryLoadReq { 
                         address: self.pc as usize, 
-                        size: Size::Word,
+                        size_in_bytes: 4,
                         requester: Target::Myself
                     }
                 );
 
                 self.memory_wait_state = MemoryWaitState::Opcode;
             },
-            EventPayload::MemoryLoadRes { data, size } => { 
+            EventPayload::MemoryLoadRes { data } => { 
                 let current_state = std::mem::replace(&mut self.memory_wait_state, MemoryWaitState::Idle);
 
                 match current_state {
                     MemoryWaitState::Idle => (),
                     MemoryWaitState::Opcode => {
-                        self.execute(*data as u32, engine_context).unwrap();
+                        self.execute(u32::from_le_bytes(data.try_into().unwrap()), engine_context).unwrap();
                     }
                     MemoryWaitState::DataForIReg { 
                         target,
@@ -182,18 +181,18 @@ impl Module for Hart {
                         mode
                     } => {
                         let data = if mode == IMode::Signed {
-                            sign_extend_64(*data, size.in_bits()) as u64
+                            sign_extend_64(u64::from_le_bytes(data.try_into().unwrap()), size) as u64
                         } else {
-                            *data
+                            u64::from_le_bytes(data.try_into().unwrap())
                         };
 
                         self.set_reg(target, data);
                     },
                     MemoryWaitState::DataForFReg { target } => {
-                        self.set_fp_reg_32_bits(target, *data as u32);
+                        self.set_fp_reg_32_bits(target, u32::from_le_bytes(data.try_into().unwrap()));
                     },
                     MemoryWaitState::DataForDReg { target } => {
-                        self.set_fp_reg_64(target, f64::from_bits(*data));
+                        self.set_fp_reg_64(target, f64::from_bits(u64::from_le_bytes(data.try_into().unwrap())));
                     }
                 }
             },

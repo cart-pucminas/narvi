@@ -1,7 +1,6 @@
 use core::{
     EngineContext, 
     ModuleId,
-    Size,
     event::{
         Event, 
         EventPayload,
@@ -342,14 +341,14 @@ impl Hart {
             Target::Module(self.memory_bus_target.expect("memory bus target not set")),
             EventPayload::MemoryLoadReq { 
                 address: addr as usize, 
-                size: Size::Byte,
+                size_in_bytes: 1,
                 requester: Target::Myself
             }
         );
         
         self.memory_wait_state = MemoryWaitState::DataForIReg { 
             target: rd, 
-            size: Size::Byte, 
+            size: 1, 
             mode: IMode::Signed 
         };
         
@@ -367,14 +366,14 @@ impl Hart {
             Target::Module(self.memory_bus_target.expect("memory bus target not set")),
             EventPayload::MemoryLoadReq { 
                 address: addr as usize,
-                size: Size::HalfWord, 
+                size_in_bytes: 2, 
                 requester: Target::Myself
             }
         );
         
         self.memory_wait_state = MemoryWaitState::DataForIReg { 
             target: rd, 
-            size: Size::HalfWord, 
+            size: 2, 
             mode: IMode::Signed 
         };
         
@@ -392,14 +391,14 @@ impl Hart {
             Target::Module(self.memory_bus_target.expect("memory bus target not set")),
             EventPayload::MemoryLoadReq { 
                 address: addr as usize,
-                size: Size::Word, 
+                size_in_bytes: 4, 
                 requester: Target::Myself
             }
         );
         
         self.memory_wait_state = MemoryWaitState::DataForIReg { 
             target: rd, 
-            size: Size::Word, 
+            size: 4, 
             mode: IMode::Signed 
         };
         
@@ -417,14 +416,14 @@ impl Hart {
             Target::Module(self.memory_bus_target.expect("memory bus target not set")),
             EventPayload::MemoryLoadReq { 
                 address: addr as usize,
-                size: Size::Word,
+                size_in_bytes: 4,
                 requester: Target::Myself
             }
         );
         
         self.memory_wait_state = MemoryWaitState::DataForIReg { 
             target: rd, 
-            size: Size::Word, 
+            size: 4, 
             mode: IMode::Unsigned 
         };
         
@@ -442,14 +441,14 @@ impl Hart {
             Target::Module(self.memory_bus_target.expect("memory bus target not set")),
             EventPayload::MemoryLoadReq { 
                 address: addr as usize,
-                size: Size::Byte,
+                size_in_bytes: 1,
                 requester: Target::Myself
             }
         );
         
         self.memory_wait_state = MemoryWaitState::DataForIReg { 
             target: rd, 
-            size: Size::Byte, 
+            size: 1, 
             mode: IMode::Unsigned 
         };
         
@@ -467,14 +466,14 @@ impl Hart {
             Target::Module(self.memory_bus_target.expect("memory bus target not set")),
             EventPayload::MemoryLoadReq { 
                 address: addr as usize,
-                size: Size::HalfWord,
+                size_in_bytes: 2,
                 requester: Target::Myself
             }
         );
         
         self.memory_wait_state = MemoryWaitState::DataForIReg { 
             target: rd, 
-            size: Size::HalfWord, 
+            size: 2, 
             mode: IMode::Unsigned 
         };
         
@@ -492,14 +491,14 @@ impl Hart {
             Target::Module(self.memory_bus_target.expect("memory bus target not set")),
             EventPayload::MemoryLoadReq { 
                 address: addr as usize,
-                size: Size::DoubleWord,
+                size_in_bytes: 8,
                 requester: Target::Myself
             }
         );
         
         self.memory_wait_state = MemoryWaitState::DataForIReg { 
             target: rd, 
-            size: Size::DoubleWord, 
+            size: 8, 
             mode: IMode::Unsigned 
         };
         
@@ -519,8 +518,7 @@ impl Hart {
             Target::Module(self.memory_bus_target.expect("memory bus target not set")), 
             EventPayload::MemoryStoreReq { 
                 address: addr as usize, 
-                data: reg_val, 
-                size: Size::Byte 
+                data: reg_val.to_le_bytes().to_vec()
             }
         );
 
@@ -542,8 +540,7 @@ impl Hart {
             Target::Module(self.memory_bus_target.expect("memory bus target not set")), 
             EventPayload::MemoryStoreReq { 
                 address: addr as usize, 
-                data: reg_val, 
-                size: Size::HalfWord 
+                data: reg_val.to_le_bytes().to_vec()
             }
         );
 
@@ -565,8 +562,7 @@ impl Hart {
             Target::Module(self.memory_bus_target.expect("memory bus target not set")), 
             EventPayload::MemoryStoreReq { 
                 address: addr as usize, 
-                data: reg_val, 
-                size: Size::Word 
+                data: reg_val.to_le_bytes().to_vec() 
             }
         );
 
@@ -588,8 +584,7 @@ impl Hart {
             Target::Module(self.memory_bus_target.expect("memory bus target not set")), 
             EventPayload::MemoryStoreReq { 
                 address: addr as usize, 
-                data: reg_val, 
-                size: Size::DoubleWord 
+                data: reg_val.to_le_bytes().to_vec() 
             }
         );
 
