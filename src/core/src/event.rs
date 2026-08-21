@@ -4,7 +4,7 @@ use crate::{
     ModuleId
 };
 
-#[derive(Copy, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Target {
     Module(ModuleId),
     Myself
