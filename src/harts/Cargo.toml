@@ -10,4 +10,3 @@ homepage.workspace = true
 core = { workspace = true }
 memory = { workspace = true }
 rounding_mode = { workspace = true }
-serde = { workspace = true }

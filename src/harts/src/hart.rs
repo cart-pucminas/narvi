@@ -82,7 +82,7 @@ impl Debug for HartError {
 
 impl Error for HartError {}
 
-#[derive(Clone, Debug, Serialize, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 enum FRegs {
     F(Vec<f32>),
     D(Vec<f64>),
@@ -121,8 +121,7 @@ enum MemoryWaitState {
 }
 
 #[allow(dead_code, unused_variables)]
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-#[serde(from = "HartConfig")]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Hart {
     memory_bus_target: Option<ModuleId>,
 
@@ -131,17 +130,12 @@ pub struct Hart {
 
     extensions: Extensions,
     // Registers
-    #[serde(skip)]
     regs: Vec<u64>,
-    #[serde(skip)]
     pc: u64,
 
     // __Floating Point__
-    #[serde(skip)]
     f_regs: FRegs,
-    #[serde(skip)]
     flen: u8,
-    #[serde(skip)]
     fcsr: u32,
     // TODO: temporary flag used by ebreak (see rv64i implementation)
     break_e: bool

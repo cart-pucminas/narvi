@@ -1,7 +1,6 @@
 use core::{Module, ModuleId, event::{EventPayload, Target}};
 use std::ops::Deref;
 
-use serde::Deserialize;
 use rand::{random_range};
 
 use crate::MemError;
@@ -212,28 +211,18 @@ pub struct CacheLevel {
 
     #[serde(skip)]
     offset_mask: usize,
-    #[serde(skip)]
     index_mask: usize,
-    #[serde(skip)]
     tag_mask: usize,
 
-    #[serde(skip)]
     index_start: usize,
-    #[serde(skip)]
     tag_start: usize,
 
-    #[serde(skip)]
     sets: Vec<CacheSet>,
-    #[serde(skip)]
     tags: Vec<usize>,
-    #[serde(skip)]
     valid: Vec<bool>,
-    #[serde(skip)]
     dirty: Vec<bool>,
 
-    #[serde(skip)]
     way: usize,
-    #[serde(skip)]
     n_sets: usize,
     
     block_size: usize,
