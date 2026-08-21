@@ -2,49 +2,6 @@ mod cache_level;
 
 pub use cache_level::CacheLevel;
 
-#[derive(Debug, Clone, Copy)]
-pub enum CacheReplacementPolicy {
-    LRU,
-    LFU,
-    FIFO,
-    Random,
-}
-
-#[derive(Debug, Copy, Clone)]
-pub enum CacheWritePolicy {
-    WriteThrough,
-    WriteBack
-}
-
-#[derive(Debug, Clone)]
-pub struct CacheLevelConfig {
-    pub n_blocks: usize,
-    pub block_size: usize,
-    pub set_size: usize,
-    pub share_config: u8,
-    pub replacement_policy: CacheReplacementPolicy,
-    pub write_policy: CacheWritePolicy
-}
-
-impl CacheLevelConfig {
-    pub fn new(
-        n_blocks: usize, 
-        block_size: usize, 
-        set_size: usize, 
-        share_config: u8, 
-        replacement_policy: CacheReplacementPolicy, 
-        write_policy: CacheWritePolicy
-    ) -> Self {
-        Self {
-            n_blocks,
-            block_size,
-            set_size,
-            share_config,
-            replacement_policy,
-            write_policy
-        }
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CacheError {

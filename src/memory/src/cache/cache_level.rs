@@ -1,16 +1,20 @@
-use core::{Module, ModuleId, event::{EventPayload, Target}};
-use std::ops::Deref;
+use core::{
+    CacheLevelConfig, 
+    CacheReplacementPolicy, 
+    CacheWritePolicy,
+    Module, 
+    ModuleId, 
+    event::{
+        EventPayload, 
+        Target
+    }
+};
 
 use rand::{random_range};
 
-use crate::MemError;
-
 use super::{
-    CacheLevelConfig, 
     CacheError, 
-    CacheReplacementPolicy, 
-    CacheReturn,
-    CacheWritePolicy
+    CacheReturn
 };
 
 macro_rules! mask_from {
@@ -200,16 +204,12 @@ enum PendingRequest {
     Store { data: Vec<u8> }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(from = "CacheLevelConfig")]
+#[derive(Debug)]
 pub struct CacheLevel {
-    #[serde(skip)]
     backing_store: Option<ModuleId>,
 
-    #[serde(skip)]
     pending_request: Option<(usize, PendingRequest)>,
 
-    #[serde(skip)]
     offset_mask: usize,
     index_mask: usize,
     tag_mask: usize,

@@ -3,6 +3,7 @@ mod rv64i;
 
 use core::{
     EngineContext, 
+    Extensions,
     Module, 
     ModuleId, 
     bytes::ByteVecToPrimitive,
@@ -18,10 +19,6 @@ use std::{
         Debug
     }
 };
-
-use serde::{Serialize, Deserialize};
-
-pub use extensions::Extensions;
 
 use crate::util::{sign_extend_32, sign_extend_64, sign_extend_128};
 
@@ -99,13 +96,13 @@ impl FRegs {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug)]
 struct HartConfig {
     extensions: Extensions,
     l1_size: usize,
 }
 
-#[derive(Debug, Serialize, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 enum IMode {
     Signed,
     Unsigned
@@ -125,7 +122,6 @@ enum MemoryWaitState {
 pub struct Hart {
     memory_bus_target: Option<ModuleId>,
 
-    #[serde(skip)]
     memory_wait_state: MemoryWaitState,
 
     extensions: Extensions,

@@ -7,9 +7,6 @@ pub use ram::Ram;
 pub use cache::{
     CacheLevel,
     CacheError,
-    CacheLevelConfig, 
-    CacheReplacementPolicy,
-    CacheWritePolicy
 };
 
 #[derive(Debug, PartialEq, Eq)]
