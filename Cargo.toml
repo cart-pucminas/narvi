@@ -3,7 +3,6 @@ members = [
     "src/engine",
     "src/harts",
     "src/memory",
-    "src/machine",
     "src/core",
     "src/tests",
     "src/journal",
@@ -25,7 +24,6 @@ homepage = "https://github.com/cart-pucminas/narvi"
 core = { path = "src/core" }
 engine = { path = "src/engine" }
 harts = { path = "src/harts" }
-machine = { path = "src/machine" }
 journal = { path = "src/journal" }
 memory = { path = "src/memory" }
 tests = { path = "src/tests" }
