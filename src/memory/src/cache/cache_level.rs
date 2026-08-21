@@ -203,7 +203,7 @@ enum PendingRequest {
 
 #[derive(Debug, Deserialize)]
 #[serde(from = "CacheLevelConfig")]
-pub(super) struct CacheLevel {
+pub struct CacheLevel {
     #[serde(skip)]
     backing_store: Option<ModuleId>,
 
