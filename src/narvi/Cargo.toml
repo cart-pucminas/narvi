@@ -1,0 +1,13 @@
+[package]
+name = "narvi"
+version.workspace = true
+license-file.workspace = true
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+
+[dependencies]
+narvi_core.workspace = true
+engine.workspace = true
+serde.workspace = true
+serde_yaml.workspace = true
