@@ -7,8 +7,6 @@ use core::{
     }
 };
 
-use memory::MemoryRuntimeContext;
-
 use crate::hart::{
     Hart,
     HartError,

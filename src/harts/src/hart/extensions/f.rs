@@ -6,7 +6,6 @@ use core::{
         Target,
     }
 };
-use memory::MemoryRuntimeContext;
 
 use crate::hart::{Hart, HartError, MemoryWaitState};
 use crate::util::{

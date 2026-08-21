@@ -5,6 +5,7 @@ use core::{
     EngineContext, 
     Module, 
     ModuleId, 
+    bytes::ByteVecToPrimitive,
     event::{
         EventPayload,
         Target,
@@ -17,8 +18,6 @@ use std::{
         Debug
     }
 };
-
-use memory::{CacheController, MemError, MemoryRuntimeContext};
 
 use serde::{Serialize, Deserialize};
 
@@ -53,7 +52,6 @@ pub enum HartError {
     InstructionAddressMisaligned,
     FLENMisaligned,
     FLENTooShort,
-    MemError(MemError)
 }
 
 impl HartError {
@@ -66,8 +64,6 @@ impl HartError {
             Self::InstructionAddressMisaligned => "InstructionAddressMisaligned".to_string(),
             Self::FLENMisaligned => "FLENMisalligned".to_string(),
             Self::FLENTooShort => "FLENTooShort".to_string(),
-            // TODO: better string for this
-            Self::MemError(mem_err) => "Memory Error".to_string()
         }
     }
 }
@@ -119,7 +115,7 @@ enum IMode {
 enum MemoryWaitState {
     Idle,
     Opcode,
-    DataForIReg { target: u8, size: Size, mode: IMode },
+    DataForIReg { target: u8, size: usize, mode: IMode },
     DataForFReg { target: u8 },
     DataForDReg { target: u8 },
 }
@@ -173,7 +169,7 @@ impl Module for Hart {
                 match current_state {
                     MemoryWaitState::Idle => (),
                     MemoryWaitState::Opcode => {
-                        self.execute(u32::from_le_bytes(data.try_into().unwrap()), engine_context).unwrap();
+                        self.execute(data.to_u32().unwrap(), engine_context).unwrap();
                     }
                     MemoryWaitState::DataForIReg { 
                         target,
@@ -181,18 +177,18 @@ impl Module for Hart {
                         mode
                     } => {
                         let data = if mode == IMode::Signed {
-                            sign_extend_64(u64::from_le_bytes(data.try_into().unwrap()), size) as u64
+                            sign_extend_64(data.to_u64().unwrap(), size as u8) as u64
                         } else {
-                            u64::from_le_bytes(data.try_into().unwrap())
+                            data.to_u64().unwrap()
                         };
 
                         self.set_reg(target, data);
                     },
                     MemoryWaitState::DataForFReg { target } => {
-                        self.set_fp_reg_32_bits(target, u32::from_le_bytes(data.try_into().unwrap()));
+                        self.set_fp_reg_32_bits(target, data.to_u32().unwrap());
                     },
                     MemoryWaitState::DataForDReg { target } => {
-                        self.set_fp_reg_64(target, f64::from_bits(u64::from_le_bytes(data.try_into().unwrap())));
+                        self.set_fp_reg_64(target, f64::from_bits(data.to_u64().unwrap()));
                     }
                 }
             },
@@ -218,12 +214,6 @@ impl From<HartConfig> for Hart {
             fcsr: 0,
             break_e: false
         }
-    }
-}
-
-impl From<MemError> for HartError {
-    fn from(value: MemError) -> Self {
-        Self::MemError(value) 
     }
 }
 
