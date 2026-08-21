@@ -7,6 +7,6 @@ edition.workspace = true
 homepage.workspace = true
 
 [dependencies]
-core = { workspace = true }
+narvi_core = { workspace = true }
 memory = { workspace = true }
 rounding_mode = { workspace = true }

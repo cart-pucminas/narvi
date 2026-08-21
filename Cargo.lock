@@ -20,13 +20,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "core"
-version = "0.1.0"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "cpufeatures"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -39,9 +32,9 @@ dependencies = [
 name = "engine"
 version = "0.1.0"
 dependencies = [
- "core",
  "harts",
  "memory",
+ "narvi_core",
 ]
 
 [[package]]
@@ -66,8 +59,8 @@ dependencies = [
 name = "harts"
 version = "0.1.0"
 dependencies = [
- "core",
  "memory",
+ "narvi_core",
  "rounding_mode",
 ]
 
@@ -113,9 +106,26 @@ checksum = "68ab91017fe16c622486840e4c83c9a37afeff978bd239b5293d61ece587de66"
 name = "memory"
 version = "0.1.0"
 dependencies = [
- "core",
  "journal",
+ "narvi_core",
  "rand",
+]
+
+[[package]]
+name = "narvi"
+version = "0.1.0"
+dependencies = [
+ "engine",
+ "narvi_core",
+ "serde",
+ "serde_yaml",
+]
+
+[[package]]
+name = "narvi_core"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

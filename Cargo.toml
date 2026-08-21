@@ -3,9 +3,9 @@ members = [
     "src/engine",
     "src/harts",
     "src/memory",
-    "src/core",
+    "src/narvi_core",
     "src/tests",
-    "src/journal",
+    "src/journal", "src/narvi",
 ]
 resolver = "3"
 
@@ -21,7 +21,7 @@ edition = "2024"
 homepage = "https://github.com/cart-pucminas/narvi"
 
 [workspace.dependencies]
-core = { path = "src/core" }
+narvi_core = { path = "src/narvi_core" }
 engine = { path = "src/engine" }
 harts = { path = "src/harts" }
 journal = { path = "src/journal" }

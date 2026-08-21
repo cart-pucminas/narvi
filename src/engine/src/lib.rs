@@ -1,5 +1,5 @@
 use std::{collections::BinaryHeap, default};
-use core::{
+use narvi_core::{
     event::Event,
     Module
 };

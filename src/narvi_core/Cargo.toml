@@ -1,5 +1,5 @@
 [package]
-name = "core"
+name = "narvi_core"
 version.workspace = true
 license-file.workspace = true
 authors.workspace = true

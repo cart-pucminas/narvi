@@ -1,13 +1,14 @@
 mod extensions;
 mod rv64i;
 
-use core::{
+use narvi_core::{
     EngineContext, 
     Extensions,
     Module, 
     ModuleId, 
     bytes::ByteVecToPrimitive,
     event::{
+        Event,
         EventPayload,
         Target,
     }
@@ -138,7 +139,7 @@ pub struct Hart {
 }
 
 impl Module for Hart { 
-    fn process_event(&mut self, event: core::event::Event, engine_context: &mut dyn EngineContext) {
+    fn process_event(&mut self, event: Event, engine_context: &mut dyn EngineContext) {
         match event.payload() {
             EventPayload::HartExecute => { 
                 engine_context.schedule(

@@ -1,10 +1,12 @@
-use core::{
+use narvi_core::{
     CacheLevelConfig, 
     CacheReplacementPolicy, 
     CacheWritePolicy,
+    EngineContext,
     Module, 
     ModuleId, 
     event::{
+        Event,
         EventPayload, 
         Target
     }
@@ -232,7 +234,7 @@ pub struct CacheLevel {
 }
 
 impl Module for CacheLevel {
-    fn process_event(&mut self, event: core::event::Event, engine_context: &mut dyn core::EngineContext) {
+    fn process_event(&mut self, event: Event, engine_context: &mut dyn EngineContext) {
         match event.payload() {
             EventPayload::MemoryLoadReq { address, size_in_bytes, requester } => {
                 match self.read(*address, *size_in_bytes as usize) {

@@ -1,7 +1,11 @@
-use core::{
+use narvi_core::{
+    EngineContext,
     Module, 
     ModuleId, 
-    event::EventPayload,
+    event::{
+        Event,
+        EventPayload,
+    }
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -14,7 +18,7 @@ pub enum RamError {
 pub struct Ram(Vec<u8>);
 
 impl Module for Ram {
-    fn process_event(&mut self, event: core::event::Event, engine_context: &mut dyn core::EngineContext) {
+    fn process_event(&mut self, event: Event, engine_context: &mut dyn EngineContext) {
         match event.payload() {
             EventPayload::MemoryLoadReq { address, size_in_bytes, requester } => {
                 let data = self.read_bytes(*address, *size_in_bytes).unwrap();
