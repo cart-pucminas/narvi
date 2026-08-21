@@ -1,5 +1,10 @@
+use core::{Module, ModuleId, event::{EventPayload, Target}};
+use std::ops::Deref;
+
 use serde::Deserialize;
 use rand::{random_range};
+
+use crate::MemError;
 
 use super::{
     CacheLevelConfig, 
@@ -190,9 +195,21 @@ pub struct CacheStats {
     pub evictions: usize,
 }
 
+#[derive(Debug)]
+enum PendingRequest {
+    Load { requester: Target, size: usize },
+    Store { data: Vec<u8> }
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(from = "CacheLevelConfig")]
 pub(super) struct CacheLevel {
+    #[serde(skip)]
+    backing_store: Option<ModuleId>,
+
+    #[serde(skip)]
+    pending_request: Option<(usize, PendingRequest)>,
+
     #[serde(skip)]
     offset_mask: usize,
     #[serde(skip)]
@@ -225,6 +242,117 @@ pub(super) struct CacheLevel {
     pub(super) write_policy: CacheWritePolicy,
 }
 
+impl Module for CacheLevel {
+    fn process_event(&mut self, event: core::event::Event, engine_context: &mut dyn core::EngineContext) {
+        match event.payload() {
+            EventPayload::MemoryLoadReq { address, size_in_bytes, requester } => {
+                match self.read(*address, *size_in_bytes as usize) {
+                    Ok(CacheReturn::Hit(data)) => {
+                        engine_context.schedule(1, *requester, EventPayload::MemoryLoadRes { data: data });
+                    },
+                    Ok(CacheReturn::Miss) | Err(_) => {
+                        self.pending_request = Some((
+                            *address, 
+                            PendingRequest::Load {
+                                requester: *requester,
+                                size: *size_in_bytes
+                            }
+                        ));
+
+                        let block_base_address = *address & (self.offset_mask ^ usize::MAX);
+
+                        engine_context.schedule(
+                            1,
+                            Target::Module(self.backing_store.unwrap()),
+                            EventPayload::MemoryLoadReq { 
+                                address: block_base_address, 
+                                size_in_bytes: self.block_size, 
+                                requester: Target::Myself 
+                            }
+                        );
+                    }
+                }
+            },
+            EventPayload::MemoryStoreReq { address, data } => {
+                if let Ok(true) = self.find(*address) {
+                    self.update(*address, data.clone()).expect("failed to update block");
+                    
+                    if matches!(self.write_policy, CacheWritePolicy::WriteThrough) {
+                        engine_context.schedule(
+                            1,
+                            Target::Module(self.backing_store.unwrap()), 
+                            EventPayload::MemoryStoreReq { 
+                                address: *address,
+                                data: data.clone()
+                            }
+                        );
+                    }
+                } else {
+                    self.pending_request = Some((*address, PendingRequest::Store { data: data.clone() }));
+
+                    let block_base_address = *address & (self.offset_mask ^ usize::MAX);
+
+                    engine_context.schedule(
+                        1,
+                        Target::Module(self.backing_store.unwrap()), 
+                        EventPayload::MemoryLoadReq { 
+                            address: block_base_address, 
+                            size_in_bytes: self.block_size,
+                            requester: Target::Myself 
+                        }
+                    );
+                }
+            },
+            EventPayload::MemoryLoadRes { data } => {
+                let (orig_addr, req_type) = self.pending_request.take()
+                    .expect("received memory without a pending request");
+
+                let insert_result = self.insert(orig_addr, data.clone()).expect("failed to insert block");
+
+                if let Some((dirty_addr, dirty_bytes)) = insert_result {
+                    if matches!(self.write_policy, CacheWritePolicy::WriteBack) {
+                        engine_context.schedule(
+                            1,
+                            Target::Module(self.backing_store.unwrap()), 
+                            EventPayload::MemoryStoreReq { 
+                                address: dirty_addr, 
+                                data: dirty_bytes, 
+                            }
+                        );
+                    }
+                }
+
+                match req_type {
+                    PendingRequest::Load { requester, size } => {
+                        if let Ok(CacheReturn::Hit(requested_data)) = self.read(orig_addr, size) {
+                            engine_context.schedule(
+                                1,
+                                requester,
+                                EventPayload::MemoryLoadRes { data: requested_data }
+                            );
+                        }
+                    },
+                    PendingRequest::Store { data: store_data } => {
+                        self.update(orig_addr, store_data.clone()).expect("failed to apply pending store");
+
+                        if matches!(self.write_policy, CacheWritePolicy::WriteThrough) {
+                            engine_context.schedule(
+                                1,
+                                Target::Module(self.backing_store.unwrap()),
+                                EventPayload::MemoryStoreReq {
+                                    address: orig_addr,
+                                    data: store_data,
+                                }
+                            );
+                        }
+                    }
+                }
+            },
+            _ => panic!("unable to process {event}")
+        }
+    }
+}
+
 impl From<CacheLevelConfig> for CacheLevel {
     fn from(config: CacheLevelConfig) -> Self {
         let offset_size = config.block_size.ilog2() as usize;
@@ -244,6 +372,8 @@ impl From<CacheLevelConfig> for CacheLevel {
         );
 
         CacheLevel {
+            backing_store: None,
+            pending_request: None,
             index_mask, 
             tag_mask, 
             offset_mask,
@@ -284,6 +414,8 @@ impl CacheLevel {
         let base_set = CacheSet::new(block_size, associativity, replacement_policy);
 
         CacheLevel {
+            backing_store: None,
+            pending_request: None,
             index_mask,
             tag_mask,
             offset_mask,
