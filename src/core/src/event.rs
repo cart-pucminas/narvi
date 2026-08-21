@@ -1,11 +1,10 @@
-use std::fmt::Display;
+use std::{fmt::Display, sync::Arc};
 
 use crate::{
-    ModuleId,
-    Size
+    ModuleId
 };
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Copy, Debug, Eq, PartialEq)]
 pub enum Target {
     Module(ModuleId),
     Myself
@@ -14,9 +13,9 @@ pub enum Target {
 #[derive(Debug, Eq, PartialEq)]
 pub enum EventPayload {
     HartExecute,
-    MemoryLoadReq { address: usize, size: Size, requester: Target },
-    MemoryLoadRes { data: u64, size: Size },
-    MemoryStoreReq { address: usize, data: u64, size: Size },
+    MemoryLoadReq { address: usize, size_in_bytes: usize, requester: Target },
+    MemoryLoadRes { data: Vec<u8> },
+    MemoryStoreReq { address: usize, data: Vec<u8> },
 }
 
 impl EventPayload {
