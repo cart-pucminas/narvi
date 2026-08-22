@@ -13,6 +13,8 @@ use narvi_core::{
     }
 };
 
+use engine::Engine;
+
 fn main() -> Result<(), Box<dyn Error>> {
     let config = MachineConfig::default();
 
@@ -22,17 +24,19 @@ fn main() -> Result<(), Box<dyn Error>> {
         panic!("Expected a file path");
     }
     
-    let mut machine = {
+    let mut engine = {
         let assembly = fs::read(&args[1]).expect("Could not read file");
         println!("{assembly:X?}");
-        Machine::new(&config, assembly).expect("Could not construct machine")
+        Engine::build_from_config(&config, assembly)
     };
 
-    while !machine.done() {
-        machine.update()?
+    let mut is_running = true;
+
+    while is_running {
+        is_running = engine.update();
     }
 
-    println!("{:?}", machine.get_hart(0));
+    println!("{:?}", engine.get_journal());
 
     let yaml = serde_yaml::to_string(&config).unwrap();
     {
