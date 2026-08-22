@@ -1,4 +1,4 @@
-use crate::event::{Event, EventPayload, Target};
+use crate::event::{Event, JournalEvent, EventPayload, Target};
 
 pub mod event;
 pub mod bytes;
@@ -8,6 +8,8 @@ pub type ModuleId = usize;
 
 pub trait EngineContext {
     fn schedule(&mut self, timestamp: u64, target: Target, payload: EventPayload);
+
+    fn record_journal(&mut self, event: JournalEvent);
 }
 
 pub trait Module { 

@@ -141,7 +141,7 @@ pub struct Hart {
 impl Module for Hart { 
     fn process_event(&mut self, event: Event, engine_context: &mut dyn EngineContext) {
         match event.payload() {
-            EventPayload::HartExecute => { 
+            EventPayload::HartExecute | EventPayload::Reset => { 
                 engine_context.schedule(
                     1,
                     Target::Myself,

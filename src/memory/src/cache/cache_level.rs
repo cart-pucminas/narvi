@@ -339,6 +339,7 @@ impl Module for CacheLevel {
                     }
                 }
             },
+            EventPayload::Reset => {},
             _ => panic!("unable to process {event}")
         }
     }
@@ -422,6 +423,10 @@ impl CacheLevel {
             stats: Default::default(),
             write_policy
         }
+    }
+
+    pub fn set_backing_store(&mut self, backing_store: ModuleId) {
+        self.backing_store = Some(backing_store);
     }
 
     fn get_old (

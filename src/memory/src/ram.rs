@@ -31,7 +31,8 @@ impl Module for Ram {
             },
             EventPayload::MemoryStoreReq { address, data } => {
                 self.write_bytes(*address, data.to_owned()).unwrap();
-            }
+            },
+            EventPayload::Reset => {},
             _ => panic!("cannot process {event}")
         }
     }

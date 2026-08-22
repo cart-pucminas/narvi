@@ -4,6 +4,14 @@ use crate::{
     ModuleId
 };
 
+pub enum JournalEvent {
+    CacheHit,
+    CacheMiss,
+    Cycles { cycles: usize },
+    CyclesLost { cycles: usize },
+    HartInstruction
+}
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Target {
     Module(ModuleId),
@@ -16,6 +24,7 @@ pub enum EventPayload {
     MemoryLoadReq { address: usize, size_in_bytes: usize, requester: Target },
     MemoryLoadRes { data: Vec<u8> },
     MemoryStoreReq { address: usize, data: Vec<u8> },
+    Reset
 }
 
 impl EventPayload {
@@ -25,6 +34,7 @@ impl EventPayload {
             Self::MemoryLoadReq { .. } => "MemoryLoadReq",
             Self::MemoryLoadRes { .. } => "MemoryLoadRes",
             Self::MemoryStoreReq { .. } => "MemoryStoreReq",
+            Self::Reset => "Reset"
         }
     }
 }
