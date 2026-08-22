@@ -1,4 +1,4 @@
-use std::{fmt::Display, sync::Arc};
+use std::fmt::Display;
 
 use crate::{
     ModuleId
@@ -18,7 +18,7 @@ pub enum Target {
     Myself
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum EventPayload {
     HartExecute,
     MemoryLoadReq { address: usize, size_in_bytes: usize, requester: Target },
@@ -45,7 +45,7 @@ impl Display for EventPayload {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Event {
     timestamp: u64,
     target: ModuleId,
