@@ -98,7 +98,7 @@ pub struct Engine {
 }
 
 impl Engine {
-    pub fn build_from_config(config: MachineConfig) -> Self {
+    pub fn build_from_config(config: MachineConfig, assembly: Vec<u8>) -> Self {
         let mut modules: Vec<Box<dyn Module>> = Vec::new();
         let mut cache_level_map: HashMap<ModuleId, usize> = HashMap::new();
 
@@ -107,7 +107,11 @@ impl Engine {
             modules.push(Box::new(hart));
         }
 
-        let ram = Ram::new(config.ram_size);
+        let ram = {
+            let mut ram = Ram::new(config.ram_size);
+            ram.write_bytes(0, assembly);
+            ram
+        };
         let ram_id = modules.len();
         modules.push(Box::new(ram));
 
