@@ -6,9 +6,7 @@ use narvi_core::{
     Module, 
     ModuleId, 
     event::{
-        Event,
-        EventPayload, 
-        Target
+        Event, EventPayload, JournalEvent, Target
     }
 };
 
@@ -240,6 +238,7 @@ impl Module for CacheLevel {
                 match self.read(*address, *size_in_bytes as usize) {
                     Ok(CacheReturn::Hit(data)) => {
                         engine_context.schedule(1, *requester, EventPayload::MemoryLoadRes { data: data });
+                        engine_context.record_journal(JournalEvent::CacheHit);
                     },
                     Ok(CacheReturn::Miss) | Err(_) => {
                         self.pending_request = Some((
@@ -261,6 +260,8 @@ impl Module for CacheLevel {
                                 requester: Target::Myself 
                             }
                         );
+
+                        engine_context.record_journal(JournalEvent::CacheMiss);
                     }
                 }
             },
@@ -278,6 +279,8 @@ impl Module for CacheLevel {
                             }
                         );
                     }
+
+                    engine_context.record_journal(JournalEvent::CacheHit);
                 } else {
                     self.pending_request = Some((*address, PendingRequest::Store { data: data.clone() }));
 
@@ -292,6 +295,8 @@ impl Module for CacheLevel {
                             requester: Target::Myself 
                         }
                     );
+
+                    engine_context.record_journal(JournalEvent::CacheMiss);
                 }
             },
             EventPayload::MemoryLoadRes { data } => {
