@@ -160,7 +160,15 @@ impl Module for Hart {
                 match current_state {
                     MemoryWaitState::Idle => (),
                     MemoryWaitState::Opcode => {
-                        self.execute(data.to_u32().unwrap(), engine_context).unwrap();
+                        let status = self.execute(data.to_u32().unwrap(), engine_context).unwrap();
+
+                        if !status {
+                            engine_context.schedule(
+                                1,
+                                Target::Myself, 
+                                EventPayload::HartExecute
+                            );
+                        }
                     }
                     MemoryWaitState::DataForIReg { 
                         target,
