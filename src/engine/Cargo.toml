@@ -10,3 +10,4 @@ homepage.workspace = true
 narvi_core = { workspace = true }
 harts = { workspace = true }
 memory = { workspace = true }
+journal = { workspace = true }
