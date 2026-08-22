@@ -121,7 +121,7 @@ enum MemoryWaitState {
 #[allow(dead_code, unused_variables)]
 #[derive(Clone, Debug, PartialEq)]
 pub struct Hart {
-    memory_bus_target: Option<ModuleId>,
+    memory_bus_target: ModuleId,
 
     memory_wait_state: MemoryWaitState,
 
@@ -144,7 +144,7 @@ impl Module for Hart {
             EventPayload::HartExecute | EventPayload::Reset => { 
                 engine_context.schedule(
                     1,
-                    Target::Myself,
+                    Target::Module(self.memory_bus_target),
                     EventPayload::MemoryLoadReq { 
                         address: self.pc as usize, 
                         size_in_bytes: 4,
@@ -198,6 +198,7 @@ impl Module for Hart {
     }
 }
 
+/*
 impl From<HartConfig> for Hart {
     fn from(config: HartConfig) -> Self {
         Hart{
@@ -217,11 +218,12 @@ impl From<HartConfig> for Hart {
         }
     }
 }
+*/
 
 impl Hart {
-    pub fn from_extensions(extensions: &Extensions) -> Hart {
+    pub fn from_extensions(extensions: &Extensions, memory_bus_target: ModuleId) -> Hart {
         Hart {
-            memory_bus_target: None,
+            memory_bus_target,
             memory_wait_state: MemoryWaitState::Opcode,
             extensions: *extensions,
             regs: vec![0; 32],

@@ -338,7 +338,7 @@ impl Hart {
 
         engine_context.schedule(
             1, 
-            Target::Module(self.memory_bus_target.expect("memory bus target not set")),
+            Target::Module(self.memory_bus_target),
             EventPayload::MemoryLoadReq { 
                 address: addr as usize, 
                 size_in_bytes: 1,
@@ -363,7 +363,7 @@ impl Hart {
 
         engine_context.schedule(
             1, 
-            Target::Module(self.memory_bus_target.expect("memory bus target not set")),
+            Target::Module(self.memory_bus_target),
             EventPayload::MemoryLoadReq { 
                 address: addr as usize,
                 size_in_bytes: 2, 
@@ -388,7 +388,7 @@ impl Hart {
 
         engine_context.schedule(
             1, 
-            Target::Module(self.memory_bus_target.expect("memory bus target not set")),
+            Target::Module(self.memory_bus_target),
             EventPayload::MemoryLoadReq { 
                 address: addr as usize,
                 size_in_bytes: 4, 
@@ -413,7 +413,7 @@ impl Hart {
 
         engine_context.schedule(
             1, 
-            Target::Module(self.memory_bus_target.expect("memory bus target not set")),
+            Target::Module(self.memory_bus_target),
             EventPayload::MemoryLoadReq { 
                 address: addr as usize,
                 size_in_bytes: 4,
@@ -438,7 +438,7 @@ impl Hart {
 
         engine_context.schedule(
             1, 
-            Target::Module(self.memory_bus_target.expect("memory bus target not set")),
+            Target::Module(self.memory_bus_target),
             EventPayload::MemoryLoadReq { 
                 address: addr as usize,
                 size_in_bytes: 1,
@@ -463,7 +463,7 @@ impl Hart {
 
         engine_context.schedule(
             1, 
-            Target::Module(self.memory_bus_target.expect("memory bus target not set")),
+            Target::Module(self.memory_bus_target),
             EventPayload::MemoryLoadReq { 
                 address: addr as usize,
                 size_in_bytes: 2,
@@ -488,7 +488,7 @@ impl Hart {
         
         engine_context.schedule(
             1, 
-            Target::Module(self.memory_bus_target.expect("memory bus target not set")),
+            Target::Module(self.memory_bus_target),
             EventPayload::MemoryLoadReq { 
                 address: addr as usize,
                 size_in_bytes: 8,
@@ -515,7 +515,7 @@ impl Hart {
 
         engine_context.schedule(
             1, 
-            Target::Module(self.memory_bus_target.expect("memory bus target not set")), 
+            Target::Module(self.memory_bus_target), 
             EventPayload::MemoryStoreReq { 
                 address: addr as usize, 
                 data: reg_val.to_le_bytes().to_vec()
@@ -537,7 +537,7 @@ impl Hart {
 
         engine_context.schedule(
             1, 
-            Target::Module(self.memory_bus_target.expect("memory bus target not set")), 
+            Target::Module(self.memory_bus_target), 
             EventPayload::MemoryStoreReq { 
                 address: addr as usize, 
                 data: reg_val.to_le_bytes().to_vec()
@@ -559,7 +559,7 @@ impl Hart {
 
         engine_context.schedule(
             1, 
-            Target::Module(self.memory_bus_target.expect("memory bus target not set")), 
+            Target::Module(self.memory_bus_target), 
             EventPayload::MemoryStoreReq { 
                 address: addr as usize, 
                 data: reg_val.to_le_bytes().to_vec() 
@@ -581,7 +581,7 @@ impl Hart {
 
         engine_context.schedule(
             1, 
-            Target::Module(self.memory_bus_target.expect("memory bus target not set")), 
+            Target::Module(self.memory_bus_target), 
             EventPayload::MemoryStoreReq { 
                 address: addr as usize, 
                 data: reg_val.to_le_bytes().to_vec() 
