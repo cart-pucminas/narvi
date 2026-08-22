@@ -162,6 +162,8 @@ impl Module for Hart {
                     MemoryWaitState::Opcode => {
                         let status = self.execute(data.to_u32().unwrap(), engine_context).unwrap();
 
+                        engine_context.record_journal(narvi_core::event::JournalEvent::HartInstruction);
+
                         if !status {
                             engine_context.schedule(
                                 1,
