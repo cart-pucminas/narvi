@@ -32,7 +32,7 @@ pub struct MachineConfig {
 impl Default for MachineConfig {
     fn default() -> Self {
         Self {
-            hart_count: 8,
+            hart_count: 1,
             extensions: Extensions::default(),
             ram_size: 16384,
             cache_config: {

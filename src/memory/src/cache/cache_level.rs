@@ -256,7 +256,7 @@ impl Module for CacheLevel {
                             Target::Module(self.backing_store.unwrap()),
                             EventPayload::MemoryLoadReq { 
                                 address: block_base_address, 
-                                size_in_bytes: self.block_size, 
+                                size_in_bytes: self.block_size.div_ceil(8), 
                                 requester: Target::Myself 
                             }
                         );
@@ -291,7 +291,7 @@ impl Module for CacheLevel {
                         Target::Module(self.backing_store.unwrap()), 
                         EventPayload::MemoryLoadReq { 
                             address: block_base_address, 
-                            size_in_bytes: self.block_size,
+                            size_in_bytes: self.block_size.div_ceil(8),
                             requester: Target::Myself 
                         }
                     );
