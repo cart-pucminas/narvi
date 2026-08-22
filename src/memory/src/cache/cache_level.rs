@@ -350,8 +350,8 @@ impl Module for CacheLevel {
     }
 }
 
-impl From<CacheLevelConfig> for CacheLevel {
-    fn from(config: CacheLevelConfig) -> Self {
+impl From<&CacheLevelConfig> for CacheLevel {
+    fn from(config: &CacheLevelConfig) -> Self {
         let offset_size = config.block_size.ilog2() as usize;
         let index_size = config.n_blocks.ilog2() as usize;
 

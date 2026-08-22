@@ -93,12 +93,11 @@ pub struct Engine {
     event_queue: BinaryHeap<Event>,
     time: u64,
     cache_level_map: HashMap<ModuleId, usize>,
-    pub journal: Journal,
-
+    journal: Journal,
 }
 
 impl Engine {
-    pub fn build_from_config(config: MachineConfig, assembly: Vec<u8>) -> Self {
+    pub fn build_from_config(config: &MachineConfig, assembly: Vec<u8>) -> Self {
         let mut modules: Vec<Box<dyn Module>> = Vec::new();
         let mut cache_level_map: HashMap<ModuleId, usize> = HashMap::new();
 
@@ -117,7 +116,7 @@ impl Engine {
 
         let mut previous_store_id = ram_id;
 
-        for (level, cache_conf) in config.cache_config.into_iter().rev().enumerate() {
+        for (level, cache_conf) in config.cache_config.iter().rev().enumerate() {
             let mut cache = CacheLevel::from(cache_conf);
             cache.set_backing_store(previous_store_id);
             previous_store_id = modules.len();
@@ -157,5 +156,9 @@ impl Engine {
         } else {
             false
         }
+    }
+
+    pub fn get_journal(&self) -> &Journal {
+        &self.journal
     }
 }
